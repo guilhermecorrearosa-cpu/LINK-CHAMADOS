@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Chamados - Mil Cópias</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Topo -->
+  <div class="topo">
+    <span class="topo-titulo">🖨️ Mil Cópias</span>
+    <span class="topo-timer">Atualiza em <span id="contador">60</span>s</span>
+  </div>
+
+  <!-- Abas -->
+  <div class="tabs">
+    <button class="tab-btn active" id="btn-sem-triagem" onclick="trocarAba('sem-triagem')">
+      Sem Triagem <span class="badge-count badge-laranja" id="badgeSemTriagem">0</span>
+    </button>
+    <button class="tab-btn" id="btn-com-triagem" onclick="trocarAba('com-triagem')">
+      Com Triagem <span class="badge-count badge-azul" id="badgeComTriagem">0</span>
+    </button>
+  </div>
+
+  <!-- Busca -->
+  <div class="busca">
+    <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, cliente, defeito, técnico..." onkeyup="filtrar()">
+  </div>
+
+  <!-- Listas Compactas -->
+  <div class="lista">
+    <div id="aba-sem-triagem" class="tab-conteudo active">
+      <div class="vazio">Carregando chamados...</div>
+    </div>
+    <div id="aba-com-triagem" class="tab-conteudo">
+      <div class="vazio">Carregando chamados...</div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

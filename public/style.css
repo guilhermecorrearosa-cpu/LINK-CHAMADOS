@@ -1,0 +1,101 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.25;
+  min-height: 100vh;
+}
+
+/* Topo Compacto */
+.topo {
+  position: sticky; top: 0; background: #0f172a; color: #fff;
+  padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;
+  z-index: 100;
+}
+.topo-titulo { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.topo-timer { font-size: 11px; color: #94a3b8; }
+
+/* Abas */
+.tabs {
+  display: flex; background: #fff; border-bottom: 1px solid #cbd5e1;
+  position: sticky; top: 38px; z-index: 99;
+}
+.tab-btn {
+  flex: 1; padding: 9px 4px; border: none; background: none; font-size: 13px; font-weight: 700;
+  color: #64748b; text-align: center; cursor: pointer; border-bottom: 3px solid transparent;
+}
+.tab-btn.active { color: #0284c7; border-bottom-color: #0284c7; background: #f8fafc; }
+.badge-count {
+  display: inline-block; padding: 1px 5px; border-radius: 8px; font-size: 11px;
+  font-weight: 800; margin-left: 3px;
+}
+.badge-laranja { background: #ea580c; color: #fff; }
+.badge-azul { background: #0284c7; color: #fff; }
+
+/* Busca Compacta */
+.busca {
+  padding: 6px 10px; background: #fff; border-bottom: 1px solid #e2e8f0;
+}
+.busca input {
+  width: 100%; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font-size: 13px; outline: none; background: #f8fafc;
+}
+.busca input:focus { border-color: #0284c7; background: #fff; }
+
+/* Lista 2 Linhas */
+.lista { padding: 4px 6px; max-width: 900px; margin: 0 auto; }
+.tab-conteudo { display: none; }
+.tab-conteudo.active { display: block; }
+
+.item-os {
+  background: #fff; border-radius: 6px; padding: 7px 9px; margin-bottom: 5px;
+  border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 3px;
+}
+.item-os.atrasado {
+  border-left: 4px solid #ef4444 !important; background: #fffdfd;
+}
+
+/* Linha 1: OS + Cliente + Cidade + Técnico/SLA */
+.linha-1 {
+  display: flex; justify-content: space-between; align-items: center; gap: 6px;
+  white-space: nowrap; overflow: hidden;
+}
+.os-cli {
+  display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis;
+}
+.os-num {
+  font-family: monospace; font-weight: 800; font-size: 13px; color: #0284c7; flex-shrink: 0;
+}
+.cliente-nome {
+  font-weight: 700; font-size: 12.5px; color: #1e293b; overflow: hidden; text-overflow: ellipsis;
+}
+.cidade-nome {
+  font-size: 11px; color: #64748b; flex-shrink: 0; font-weight: 500;
+}
+
+.tag-tecnico {
+  font-size: 10.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px;
+  text-transform: uppercase; color: #0f172a; flex-shrink: 0;
+}
+.tag-sla {
+  font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 3px; flex-shrink: 0;
+}
+.sla-atraso { background: #fee2e2; color: #dc2626; }
+.sla-normal { background: #f1f5f9; color: #475569; }
+
+/* Linha 2: O Defeito */
+.linha-2 {
+  display: flex; align-items: center; gap: 4px; font-size: 12px;
+  color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.defeito-icone {
+  color: #d97706; font-size: 11px; flex-shrink: 0;
+}
+.defeito-texto {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;
+}
+
+.vazio { text-align: center; padding: 30px 10px; color: #94a3b8; font-size: 13px; }
