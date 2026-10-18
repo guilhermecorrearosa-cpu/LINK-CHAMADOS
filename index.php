@@ -1,7 +1,7 @@
 <?php
 /**
  * Mil Cópias - Painel de Chamados Ultra-Compacto para Celular
- * Layout de 1 a 2 linhas por OS - Máxima densidade de tela
+ * Layout de 1 a 2 linhas por OS - Sem cortar nome do cliente e sem '#'
  */
 
 // 1. Configurações da API Databit DataSnap
@@ -100,23 +100,20 @@ function buscarDefeito($os, $host, $port, $user, $pass) {
     if ($resp) {
         $json = json_decode($resp, true);
         $dados = isset($json['value']) ? $json['value'] : $json;
-        if (is_array($dados) && !empty($dados[0]['motivo'])) {
-            $cache[$os] = trim($dados[0]['motivo']);
-            return $cache[$os];
+        if (is_array($dados) && !empty($dados[0])) {
+            $osData = $dados[0];
+            // Prioriza defeito / motivo
+            $defeitoEncontrado = !empty($osData['defeitoDesc']) ? $osData['defeitoDesc'] :
+                                 (!empty($osData['motivo']) ? $osData['motivo'] :
+                                 (!empty($osData['obs']) ? $osData['obs'] : ''));
+            if ($defeitoEncontrado) {
+                $cache[$os] = trim($defeitoEncontrado);
+                return $cache[$os];
+            }
         }
     }
 
-    $exemplos = [
-        'Atolamento de papel recorrente',
-        'Mancha preta contínua na impressão',
-        'Impressora não responde na rede',
-        'Barulho forte ao tracionar papel',
-        'Erro de fusor no painel',
-        'Falha no alimentador (ADF)',
-        'Toner trocado mas pede para substituir',
-        'Impressão saindo muito clara'
-    ];
-    $cache[$os] = $exemplos[(int)preg_replace('/\D/', '', $os) % count($exemplos)];
+    $cache[$os] = 'Aguardando sincronização com Databit';
     return $cache[$os];
 }
 ?>
@@ -129,95 +126,100 @@ function buscarDefeito($os, $host, $port, $user, $pass) {
   <title>Chamados - Mil Cópias</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
-    body { background-color: #f8fafc; color: #0f172a; font-size: 13px; line-height: 1.25; }
+    body { background-color: #f8fafc; color: #0f172a; font-size: 13px; line-height: 1.3; }
 
-    /* Barra Superior Fixa e Compacta */
+    /* Barra Superior Fixa */
     .topo {
       position: sticky; top: 0; background: #0f172a; color: #fff;
-      padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 12px; display: flex; justify-content: space-between; align-items: center;
       z-index: 100;
     }
-    .topo-titulo { font-size: 14px; font-weight: 700; }
+    .topo-titulo { font-size: 15px; font-weight: 700; }
     .topo-timer { font-size: 11px; color: #94a3b8; }
 
-    /* Abas Compactas */
+    /* Abas */
     .tabs {
       display: flex; background: #fff; border-bottom: 1px solid #cbd5e1;
-      position: sticky; top: 38px; z-index: 99;
+      position: sticky; top: 40px; z-index: 99;
     }
     .tab-btn {
-      flex: 1; padding: 9px 4px; border: none; background: none; font-size: 13px; font-weight: 700;
+      flex: 1; padding: 10px 4px; border: none; background: none; font-size: 13px; font-weight: 700;
       color: #64748b; text-align: center; cursor: pointer; border-bottom: 3px solid transparent;
     }
     .tab-btn.active { color: #0284c7; border-bottom-color: #0284c7; background: #f8fafc; }
     .badge-count {
-      display: inline-block; padding: 1px 5px; border-radius: 8px; font-size: 11px;
+      display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 11px;
       font-weight: 800; margin-left: 3px;
     }
     .badge-laranja { background: #ea580c; color: #fff; }
     .badge-azul { background: #0284c7; color: #fff; }
 
-    /* Barra de Busca Compacta */
+    /* Busca */
     .busca {
       padding: 6px 10px; background: #fff; border-bottom: 1px solid #e2e8f0;
     }
     .busca input {
-      width: 100%; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+      width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
       font-size: 13px; outline: none; background: #f8fafc;
     }
     .busca input:focus { border-color: #0284c7; background: #fff; }
 
-    /* Lista Ultra-Compacta (1 a 2 linhas por OS) */
-    .lista { padding: 4px 6px; }
+    /* Lista Compacta com Nome Completo do Cliente */
+    .lista { padding: 6px; }
     .tab-conteudo { display: none; }
     .tab-conteudo.active { display: block; }
 
     .item-os {
-      background: #fff; border-radius: 6px; padding: 7px 9px; margin-bottom: 5px;
-      border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 3px;
+      background: #fff; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px;
+      border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 4px;
     }
     .item-os.atrasado {
       border-left: 4px solid #ef4444; background: #fffdfd;
     }
 
-    /* Linha 1: OS + Cliente + Cidade + Técnico/SLA */
+    /* Linha 1: OS + Nome Completo do Cliente + Cidade + SLA/Técnico */
     .linha-1 {
-      display: flex; justify-content: space-between; align-items: center; gap: 6px;
-      white-space: nowrap; overflow: hidden;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
     }
     .os-cli {
-      display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis;
+      display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;
+    }
+    .os-topo-info {
+      display: flex; align-items: center; gap: 6px;
     }
     .os-num {
-      font-family: monospace; font-weight: 800; font-size: 13px; color: #0284c7; flex-shrink: 0;
+      font-family: monospace; font-weight: 800; font-size: 13.5px; color: #0284c7;
     }
     .cliente-nome {
-      font-weight: 700; font-size: 12.5px; color: #1e293b; overflow: hidden; text-overflow: ellipsis;
+      font-weight: 700; font-size: 13px; color: #0f172a; white-space: normal; word-break: break-word; line-height: 1.35;
     }
     .cidade-nome {
-      font-size: 11px; color: #64748b; flex-shrink: 0; font-weight: 500;
+      font-size: 11px; color: #64748b; font-weight: 600;
     }
 
+    .tags-status {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0;
+    }
     .tag-tecnico {
       font-size: 10.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px;
-      text-transform: uppercase; color: #0f172a; flex-shrink: 0;
+      text-transform: uppercase; color: #0f172a;
     }
     .tag-sla {
-      font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 3px; flex-shrink: 0;
+      font-size: 10.5px; font-weight: 700; padding: 2px 5px; border-radius: 3px;
     }
     .sla-atraso { background: #fee2e2; color: #dc2626; }
     .sla-normal { background: #f1f5f9; color: #475569; }
 
-    /* Linha 2: O Defeito em destaque direto */
+    /* Linha 2: O Defeito */
     .linha-2 {
-      display: flex; align-items: center; gap: 4px; font-size: 12px;
-      color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      display: flex; align-items: flex-start; gap: 4px; font-size: 12px;
+      color: #334155; line-height: 1.3;
     }
     .defeito-icone {
-      color: #d97706; font-size: 11px; flex-shrink: 0;
+      color: #d97706; font-size: 11px; flex-shrink: 0; margin-top: 1px;
     }
     .defeito-texto {
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;
+      font-weight: 500; white-space: normal; word-break: break-word;
     }
 
     .vazio { text-align: center; padding: 30px 10px; color: #94a3b8; font-size: 13px; }
@@ -246,7 +248,7 @@ function buscarDefeito($os, $host, $port, $user, $pass) {
     <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, cliente, defeito, técnico..." onkeyup="filtrar()">
   </div>
 
-  <!-- Lista 2 Linhas -->
+  <!-- Lista Compacta -->
   <div class="lista">
 
     <!-- Aba 1: Sem Triagem -->
@@ -259,11 +261,13 @@ function buscarDefeito($os, $host, $port, $user, $pass) {
             <!-- LINHA 1 -->
             <div class="linha-1">
               <div class="os-cli">
-                <span class="os-num">#<?= htmlspecialchars($c['os']) ?></span>
-                <span class="cliente-nome" title="<?= htmlspecialchars($c['cliente']) ?>"><?= htmlspecialchars($c['cliente']) ?></span>
+                <div class="os-topo-info">
+                  <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
+                  <span class="cidade-nome">📍 <?= htmlspecialchars($c['cidade']) ?></span>
+                </div>
+                <div class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
               </div>
-              <div style="display: flex; align-items: center; gap: 4px;">
-                <span class="cidade-nome"><?= htmlspecialchars($c['cidade']) ?></span>
+              <div class="tags-status">
                 <span class="tag-sla <?= (int)$c['sla'] < 0 ? 'sla-atraso' : 'sla-normal' ?>">
                   <?= $c['sla'] ?>h
                 </span>
@@ -289,11 +293,13 @@ function buscarDefeito($os, $host, $port, $user, $pass) {
             <!-- LINHA 1 -->
             <div class="linha-1">
               <div class="os-cli">
-                <span class="os-num">#<?= htmlspecialchars($c['os']) ?></span>
-                <span class="cliente-nome" title="<?= htmlspecialchars($c['cliente']) ?>"><?= htmlspecialchars($c['cliente']) ?></span>
+                <div class="os-topo-info">
+                  <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
+                  <span class="cidade-nome">📍 <?= htmlspecialchars($c['cidade']) ?></span>
+                </div>
+                <div class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
               </div>
-              <div style="display: flex; align-items: center; gap: 4px;">
-                <span class="cidade-nome"><?= htmlspecialchars($c['cidade']) ?></span>
+              <div class="tags-status">
                 <span class="tag-tecnico" style="background-color: <?= htmlspecialchars($c['corTecnico']) ?>">
                   <?= htmlspecialchars($c['tecnico']) ?>
                 </span>
