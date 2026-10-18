@@ -11,10 +11,10 @@
   <!-- Topo -->
   <div class="topo">
     <span class="topo-titulo">🖨️ Mil Cópias</span>
-    <span class="topo-timer">Atualiza em <span id="contador">60</span>s</span>
+    <span class="topo-timer"><span id="contador">60</span>s</span>
   </div>
 
-  <!-- Abas -->
+  <!-- Abas Principais -->
   <div class="tabs">
     <button class="tab-btn active" id="btn-sem-triagem" onclick="trocarAba('sem-triagem')">
       Sem Triagem <span class="badge-count badge-laranja" id="badgeSemTriagem">0</span>
@@ -24,9 +24,16 @@
     </button>
   </div>
 
+  <!-- Sub-filtros para Status 00 e Status 01 -->
+  <div class="sub-filtros" id="subFiltrosBar">
+    <button class="sub-btn active" id="btnSubTodas" onclick="filtrarSubStatus('')">Todas (<span id="countSubTodas">0</span>)</button>
+    <button class="sub-btn" id="btnSub00" onclick="filtrarSubStatus('00')">Status 00 (<span id="countSub00">0</span>)</button>
+    <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Status 01 (<span id="countSub01">0</span>)</button>
+  </div>
+
   <!-- Busca -->
   <div class="busca">
-    <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, cliente, defeito, técnico..." onkeyup="filtrar()">
+    <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, status, cliente, defeito..." onkeyup="filtrar()">
   </div>
 
   <!-- Listas Compactas -->

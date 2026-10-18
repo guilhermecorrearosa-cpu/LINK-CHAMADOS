@@ -2,7 +2,7 @@
 /**
  * Mil Cópias - Painel de Chamados Ultra-Compacto para Celular
  * Integração Direta com a API Databit ERP (http://databitbh.com:54235/databitservice/)
- * Layout: 1 a 2 linhas por OS, sem corte de nome de cliente e sem '#'
+ * Layout: 1 a 2 linhas por OS, sem corte de nome de cliente, sem '#' e com Status (00, 01, etc.)
  */
 
 $api_base_url = 'http://databitbh.com:54235/databitservice/';
@@ -78,27 +78,39 @@ if ($html) {
     }
 }
 
-// 4. Buscar defeitos reais em lote na API do Databit
-$defeitosReais = carregarDefeitosReaisEmLote($todasOS, $api_base_url);
+// 4. Buscar defeitos reais e status oficial das OS na API do Databit
+$detalhesAPI = carregarDetalhesReaisEmLote($todasOS, $api_base_url);
 
-// 5. Vincular defeito real a cada OS
+// 5. Vincular defeito e status a cada OS
+$qtdStatus00 = 0;
+$qtdStatus01 = 0;
+
 foreach ($semTriagem as &$item) {
-    $item['defeito'] = isset($defeitosReais[$item['os']]) ? $defeitosReais[$item['os']] : 'Não informado';
+    $info = isset($detalhesAPI[$item['os']]) ? $detalhesAPI[$item['os']] : ['defeito' => 'Não informado', 'status' => '00'];
+    $item['defeito'] = $info['defeito'];
+    $item['status'] = !empty($info['status']) ? $info['status'] : '00';
+    if ($item['status'] === '01') {
+        $qtdStatus01++;
+    } else {
+        $qtdStatus00++;
+    }
 }
 unset($item);
 
 foreach ($comTriagem as &$item) {
-    $item['defeito'] = isset($defeitosReais[$item['os']]) ? $defeitosReais[$item['os']] : 'Não informado';
+    $info = isset($detalhesAPI[$item['os']]) ? $detalhesAPI[$item['os']] : ['defeito' => 'Não informado', 'status' => '03'];
+    $item['defeito'] = $info['defeito'];
+    $item['status'] = !empty($info['status']) ? $info['status'] : '03';
 }
 unset($item);
 
 /**
- * Consulta a API Databit para trazer o defeito real de cada OS
+ * Consulta a API Databit para trazer o defeito real e o status de cada OS
  */
-function carregarDefeitosReaisEmLote($listaOS, $baseUrl) {
+function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
     if (empty($listaOS)) return [];
 
-    $mapaDefeitos = [];
+    $mapaResultado = [];
     $inClause = implode("','", array_unique($listaOS));
     $filtroOS = json_encode(['filtro' => "codigo in ('{$inClause}') and situacao = 'A'"]);
     $filtroDef = json_encode(['filtro' => "codigo in ('{$inClause}')"]);
@@ -111,7 +123,7 @@ function carregarDefeitosReaisEmLote($listaOS, $baseUrl) {
         ]
     ];
 
-    // 4.1 Buscar OS (motivo e observação)
+    // 4.1 Buscar OS (motivo, observação e statusos)
     $opts['http']['content'] = $filtroOS;
     $resOS = @file_get_contents($baseUrl . 'OsController/listar', false, stream_context_create($opts));
     $dadosOS = [];
@@ -121,7 +133,8 @@ function carregarDefeitosReaisEmLote($listaOS, $baseUrl) {
         foreach ($itensOS as $o) {
             $dadosOS[$o['codigo']] = [
                 'motivo' => !empty($o['motivo']) ? trim($o['motivo']) : '',
-                'obs' => !empty($o['obs']) ? trim($o['obs']) : ''
+                'obs' => !empty($o['obs']) ? trim($o['obs']) : '',
+                'statusos' => !empty($o['statusos']) ? trim($o['statusos']) : '00'
             ];
         }
     }
@@ -166,9 +179,10 @@ function carregarDefeitosReaisEmLote($listaOS, $baseUrl) {
         }
     }
 
-    // 4.4 Consolidação da melhor descrição de defeito para cada OS
+    // 4.4 Consolidação da melhor descrição de defeito e status para cada OS
     foreach ($listaOS as $numOS) {
         $defeitoFinal = '';
+        $statusFinal = isset($dadosOS[$numOS]['statusos']) ? $dadosOS[$numOS]['statusos'] : '00';
 
         // 1ª Prioridade: Motivo direto da OS (o que o cliente reclamou)
         if (!empty($dadosOS[$numOS]['motivo'])) {
@@ -197,13 +211,18 @@ function carregarDefeitosReaisEmLote($listaOS, $baseUrl) {
         // Limpeza de texto e formatação
         if ($defeitoFinal) {
             $defeitoFinal = ltrim($defeitoFinal, "- \t\n\r");
-            $mapaDefeitos[$numOS] = normalizarTexto($defeitoFinal);
+            $defeitoFinal = normalizarTexto($defeitoFinal);
         } else {
-            $mapaDefeitos[$numOS] = 'Defeito não detalhado no sistema';
+            $defeitoFinal = 'Defeito não detalhado no sistema';
         }
+
+        $mapaResultado[$numOS] = [
+            'defeito' => $defeitoFinal,
+            'status' => $statusFinal
+        ];
     }
 
-    return $mapaDefeitos;
+    return $mapaResultado;
 }
 
 function normalizarTexto($str) {
@@ -233,7 +252,7 @@ function normalizarTexto($str) {
     .topo-titulo { font-size: 15px; font-weight: 700; }
     .topo-timer { font-size: 11px; color: #94a3b8; }
 
-    /* Abas */
+    /* Abas Principais */
     .tabs {
       display: flex; background: #fff; border-bottom: 1px solid #cbd5e1;
       position: sticky; top: 40px; z-index: 99;
@@ -249,6 +268,19 @@ function normalizarTexto($str) {
     }
     .badge-laranja { background: #ea580c; color: #fff; }
     .badge-azul { background: #0284c7; color: #fff; }
+
+    /* Sub-filtros para Status 00 e Status 01 */
+    .sub-filtros {
+      display: flex; gap: 6px; padding: 6px 10px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0;
+      align-items: center;
+    }
+    .sub-btn {
+      padding: 4px 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 12px;
+      font-size: 11.5px; font-weight: 700; color: #475569; cursor: pointer;
+    }
+    .sub-btn.active {
+      background: #0284c7; color: #fff; border-color: #0284c7;
+    }
 
     /* Busca */
     .busca {
@@ -273,7 +305,7 @@ function normalizarTexto($str) {
       border-left: 4px solid #ef4444; background: #fffdfd;
     }
 
-    /* Linha 1: OS + Nome Completo do Cliente + Cidade + SLA/Técnico */
+    /* Linha 1: OS + Status + Nome Completo do Cliente + Cidade + SLA/Técnico */
     .linha-1 {
       display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
     }
@@ -281,11 +313,22 @@ function normalizarTexto($str) {
       display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;
     }
     .os-topo-info {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
     }
     .os-num {
-      font-family: monospace; font-weight: 800; font-size: 13.5px; color: #0284c7;
+      font-family: monospace; font-weight: 800; font-size: 14px; color: #0284c7;
     }
+
+    /* Badges de Status (00, 01, 03, 04) */
+    .tag-status {
+      font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 4px;
+      letter-spacing: 0.2px; text-transform: uppercase;
+    }
+    .tag-status-00 { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+    .tag-status-01 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .tag-status-03 { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .tag-status-04 { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
     .cliente-nome {
       font-weight: 700; font-size: 13px; color: #0f172a; white-space: normal; word-break: break-word; line-height: 1.35;
     }
@@ -331,34 +374,42 @@ function normalizarTexto($str) {
 
   <!-- Abas -->
   <div class="tabs">
-    <button class="tab-btn active" onclick="trocarAba('sem-triagem')">
+    <button class="tab-btn active" id="tabBtnSem" onclick="trocarAba('sem-triagem')">
       Sem Triagem <span class="badge-count badge-laranja"><?= count($semTriagem) ?></span>
     </button>
-    <button class="tab-btn" onclick="trocarAba('com-triagem')">
+    <button class="tab-btn" id="tabBtnCom" onclick="trocarAba('com-triagem')">
       Com Triagem <span class="badge-count badge-azul"><?= count($comTriagem) ?></span>
     </button>
   </div>
 
+  <!-- Sub-filtros para Status 00 e Status 01 (visível na aba Sem Triagem) -->
+  <div class="sub-filtros" id="subFiltrosBar">
+    <button class="sub-btn active" id="btnSubTodas" onclick="filtrarSubStatus('')">Todas (<?= count($semTriagem) ?>)</button>
+    <button class="sub-btn" id="btnSub00" onclick="filtrarSubStatus('00')">Status 00 (<?= $qtdStatus00 ?>)</button>
+    <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Status 01 (<?= $qtdStatus01 ?>)</button>
+  </div>
+
   <!-- Busca -->
   <div class="busca">
-    <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, cliente, defeito, técnico..." onkeyup="filtrar()">
+    <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, status, cliente, defeito..." onkeyup="filtrar()">
   </div>
 
   <!-- Lista Compacta -->
   <div class="lista">
 
-    <!-- Aba 1: Sem Triagem -->
+    <!-- Aba 1: Sem Triagem (Status 00 e 01) -->
     <div id="aba-sem-triagem" class="tab-conteudo active">
       <?php if (empty($semTriagem)): ?>
         <div class="vazio">Nenhum chamado sem triagem.</div>
       <?php else: ?>
         <?php foreach ($semTriagem as $c): ?>
-          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" data-texto="<?= strtolower("{$c['os']} {$c['cliente']} {$c['cidade']} {$c['defeito']}") ?>">
+          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} status {$c['status']} st{$c['status']} {$c['cliente']} {$c['cidade']} {$c['defeito']}") ?>">
             <!-- LINHA 1 -->
             <div class="linha-1">
               <div class="os-cli">
                 <div class="os-topo-info">
                   <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
+                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>">Status <?= htmlspecialchars($c['status']) ?></span>
                   <span class="cidade-nome">📍 <?= htmlspecialchars($c['cidade']) ?></span>
                 </div>
                 <div class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
@@ -385,12 +436,13 @@ function normalizarTexto($str) {
         <div class="vazio">Nenhum chamado com triagem.</div>
       <?php else: ?>
         <?php foreach ($comTriagem as $c): ?>
-          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" data-texto="<?= strtolower("{$c['os']} {$c['cliente']} {$c['cidade']} {$c['tecnico']} {$c['defeito']}") ?>">
+          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} status {$c['status']} st{$c['status']} {$c['cliente']} {$c['cidade']} {$c['tecnico']} {$c['defeito']}") ?>">
             <!-- LINHA 1 -->
             <div class="linha-1">
               <div class="os-cli">
                 <div class="os-topo-info">
                   <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
+                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>">Status <?= htmlspecialchars($c['status']) ?></span>
                   <span class="cidade-nome">📍 <?= htmlspecialchars($c['cidade']) ?></span>
                 </div>
                 <div class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
@@ -414,23 +466,48 @@ function normalizarTexto($str) {
   </div>
 
   <script>
+    let subStatusAtivo = '';
+
     function trocarAba(aba) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-conteudo').forEach(c => c.classList.remove('active'));
+      const subBar = document.getElementById('subFiltrosBar');
+
       if (aba === 'sem-triagem') {
-        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('tabBtnSem').classList.add('active');
         document.getElementById('aba-sem-triagem').classList.add('active');
+        if (subBar) subBar.style.display = 'flex';
       } else {
-        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('tabBtnCom').classList.add('active');
         document.getElementById('aba-com-triagem').classList.add('active');
+        if (subBar) subBar.style.display = 'none';
       }
+      filtrar();
+    }
+
+    function filtrarSubStatus(st) {
+      subStatusAtivo = st;
+      document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+      if (st === '00') {
+        document.getElementById('btnSub00').classList.add('active');
+      } else if (st === '01') {
+        document.getElementById('btnSub01').classList.add('active');
+      } else {
+        document.getElementById('btnSubTodas').classList.add('active');
+      }
+      filtrar();
     }
 
     function filtrar() {
       const termo = document.getElementById('campoBusca').value.toLowerCase().trim();
       document.querySelectorAll('.item-os').forEach(el => {
         const texto = el.getAttribute('data-texto') || '';
-        el.style.display = texto.includes(termo) ? 'flex' : 'none';
+        const st = el.getAttribute('data-status') || '';
+        
+        let bateTexto = !termo || texto.includes(termo);
+        let bateSub = !subStatusAtivo || st === subStatusAtivo;
+
+        el.style.display = (bateTexto && bateSub) ? 'flex' : 'none';
       });
     }
 

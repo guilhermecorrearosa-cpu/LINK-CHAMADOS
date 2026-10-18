@@ -37,7 +37,7 @@ body {
   color: #94a3b8;
 }
 
-/* Abas */
+/* Abas Principais */
 .tabs {
   display: flex;
   background: #fff;
@@ -78,6 +78,31 @@ body {
 .badge-azul {
   background: #0284c7;
   color: #fff;
+}
+
+/* Sub-filtros para Status 00 e Status 01 */
+.sub-filtros {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+}
+.sub-btn {
+  padding: 4px 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+}
+.sub-btn.active {
+  background: #0284c7;
+  color: #fff;
+  border-color: #0284c7;
 }
 
 /* Busca Compacta */
@@ -128,7 +153,7 @@ body {
   background: #fffdfd;
 }
 
-/* Linha 1: OS + Nome Completo do Cliente + Cidade + Técnico/SLA */
+/* Linha 1: OS + Status + Nome Completo do Cliente + Cidade + Técnico/SLA */
 .linha-1 {
   display: flex;
   justify-content: space-between;
@@ -146,14 +171,46 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 .os-num {
   font-family: monospace;
   font-weight: 800;
-  font-size: 13.5px;
+  font-size: 14px;
   color: #0284c7;
   flex-shrink: 0;
 }
+
+/* Badges de Status (00, 01, 03, 04) */
+.tag-status {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+.tag-status-00 {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.tag-status-01 {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+.tag-status-03 {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+.tag-status-04 {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
 .cliente-nome {
   font-weight: 700;
   font-size: 13px;

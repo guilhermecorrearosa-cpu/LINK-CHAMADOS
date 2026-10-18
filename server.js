@@ -13,21 +13,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 const API_BASE_URL = process.env.DATABIT_API_URL || 'http://databitbh.com:54235/databitservice/';
 const CHAM1_URL = process.env.CHAM1_URL || 'http://databitbh.com:51202/mc/cham1.php';
 
-// Cache em memória de catálogo de defeitos (ex: 0003 -> RETIRADA DE EQUIPAMENTO)
-let catalogoDefeitosCache = null;
-
 /**
- * Consulta a API do Databit ERP em lote para obter o motivo/defeito real das OS
+ * Consulta a API do Databit ERP em lote para obter o motivo/defeito real e o status das OS
  */
-async function carregarDefeitosReais(listaOS) {
+async function carregarDetalhesReais(listaOS) {
   if (!listaOS || listaOS.length === 0) return {};
 
-  const mapaDefeitos = {};
+  const mapaResultado = {};
   const osUnicas = [...new Set(listaOS)];
   const inClause = osUnicas.join("','");
 
   try {
-    // 1. Buscar dados principais das OS em lote (motivo e observação)
+    // 1. Buscar dados principais das OS em lote (motivo, observação e statusos)
     const resOS = await fetch(`${API_BASE_URL}OsController/listar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -42,7 +39,8 @@ async function carregarDefeitosReais(listaOS) {
       for (const o of itensOS) {
         dadosOS[o.codigo] = {
           motivo: (o.motivo || '').trim(),
-          obs: (o.obs || '').trim()
+          obs: (o.obs || '').trim(),
+          statusos: (o.statusos || '00').trim()
         };
       }
     }
@@ -101,9 +99,10 @@ async function carregarDefeitosReais(listaOS) {
       }
     }
 
-    // 4. Consolidar o melhor defeito/motivo para cada OS
+    // 4. Consolidar o melhor defeito/motivo e status para cada OS
     for (const numOS of osUnicas) {
       let defeitoFinal = '';
+      const statusFinal = (dadosOS[numOS] && dadosOS[numOS].statusos) ? dadosOS[numOS].statusos : '00';
 
       // 1ª Prioridade: Motivo direto da OS
       if (dadosOS[numOS] && dadosOS[numOS].motivo) {
@@ -131,16 +130,20 @@ async function carregarDefeitosReais(listaOS) {
 
       if (defeitoFinal) {
         defeitoFinal = defeitoFinal.replace(/^[- \t\n\r]+/, '');
-        mapaDefeitos[numOS] = defeitoFinal;
       } else {
-        mapaDefeitos[numOS] = 'Defeito não detalhado no sistema';
+        defeitoFinal = 'Defeito não detalhado no sistema';
       }
+
+      mapaResultado[numOS] = {
+        defeito: defeitoFinal,
+        status: statusFinal
+      };
     }
   } catch (err) {
     console.error('Erro ao consultar API Databit:', err.message);
   }
 
-  return mapaDefeitos;
+  return mapaResultado;
 }
 
 /**
@@ -246,25 +249,38 @@ function interpretarCham1(html) {
   return { semTriagem, comTriagem, todasOS };
 }
 
-// ROTA PRINCIPAL: Retorna chamados consolidados com defeito real do Databit ERP
+// ROTA PRINCIPAL: Retorna chamados consolidados com defeito real e status oficial
 app.get('/api/chamados', async (req, res) => {
   try {
     const html = await baixarCham1Original();
     const dados = interpretarCham1(html);
 
-    // Buscar todos os defeitos reais na API oficial do Databit
-    const mapaDefeitos = await carregarDefeitosReais(dados.todasOS);
+    // Buscar todos os defeitos e status na API oficial do Databit
+    const detalhes = await carregarDetalhesReais(dados.todasOS);
 
-    // Inserir defeito em cada chamado
-    const semTriagemEnriquecido = dados.semTriagem.map(item => ({
-      ...item,
-      defeito: mapaDefeitos[item.os] || 'Não informado'
-    }));
+    let qtdStatus00 = 0;
+    let qtdStatus01 = 0;
 
-    const comTriagemEnriquecido = dados.comTriagem.map(item => ({
-      ...item,
-      defeito: mapaDefeitos[item.os] || 'Não informado'
-    }));
+    // Inserir defeito e status em cada chamado
+    const semTriagemEnriquecido = dados.semTriagem.map(item => {
+      const info = detalhes[item.os] || { defeito: 'Não informado', status: '00' };
+      const st = info.status || '00';
+      if (st === '01') qtdStatus01++; else qtdStatus00++;
+      return {
+        ...item,
+        defeito: info.defeito,
+        status: st
+      };
+    });
+
+    const comTriagemEnriquecido = dados.comTriagem.map(item => {
+      const info = detalhes[item.os] || { defeito: 'Não informado', status: '03' };
+      return {
+        ...item,
+        defeito: info.defeito,
+        status: info.status || '03'
+      };
+    });
 
     res.json({
       sucesso: true,
@@ -272,6 +288,8 @@ app.get('/api/chamados', async (req, res) => {
       apiOrigem: 'http://databitbh.com:54235/databitservice/',
       totais: {
         semTriagem: semTriagemEnriquecido.length,
+        status00: qtdStatus00,
+        status01: qtdStatus01,
         comTriagem: comTriagemEnriquecido.length,
         total: semTriagemEnriquecido.length + comTriagemEnriquecido.length
       },
