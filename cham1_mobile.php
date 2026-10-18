@@ -9,10 +9,69 @@
  * - Defeito chamativo em caixa âmbar/alerta
  * - Modelo do equipamento e número de série incluídos
  * - Status 00, 01, 03 exibidos com filtros rápidos
+ * - Botão "Definir Técnico" que atualiza para Status 03 no Databit ERP
  */
 
 $api_base_url = 'http://databitbh.com:54235/databitservice/';
 $cham1_url = 'http://databitbh.com:51202/mc/cham1.php';
+
+// AÇÃO: Atribuir Técnico e mudar status da OS para 03 via POST AJAX
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['acao'] === 'definir_tecnico') {
+    header('Content-Type: application/json; charset=utf-8');
+    $os = isset($_POST['os']) ? trim($_POST['os']) : '';
+    $codtec = isset($_POST['codtec']) ? trim($_POST['codtec']) : '';
+    $nomeTecnico = isset($_POST['nomeTecnico']) ? trim($_POST['nomeTecnico']) : '';
+
+    if (!$os || !$codtec) {
+        echo json_encode(['sucesso' => false, 'erro' => 'Número da OS e código do técnico são obrigatórios.']);
+        exit;
+    }
+
+    $opts = [
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\nAccept: application/json\r\n",
+            'content' => json_encode(['filtro' => "codigo = '{$os}'"]),
+            'timeout' => 6
+        ]
+    ];
+    $resBusca = @file_get_contents($api_base_url . 'OsController/listar', false, stream_context_create($opts));
+    $jsonBusca = json_decode($resBusca, true);
+    $listaOS = isset($jsonBusca['value']) ? $jsonBusca['value'] : (is_array($jsonBusca) ? $jsonBusca : []);
+    
+    if (empty($listaOS)) {
+        echo json_encode(['sucesso' => false, 'erro' => "OS {$os} não foi encontrada no Databit."]);
+        exit;
+    }
+
+    $osObj = $listaOS[0];
+    $osObj['codtec'] = $codtec;
+    $osObj['statusos'] = '03'; // Atualizar para Status 03
+    $osObj['alteracao'] = round(microtime(true) * 1000);
+    $osObj['opaltera'] = 'DATASERVICE';
+
+    $optsEdit = [
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\nAccept: application/json\r\n",
+            'content' => json_encode($osObj),
+            'timeout' => 8
+        ]
+    ];
+    $resEdit = @file_get_contents($api_base_url . 'OsController/editar', false, stream_context_create($optsEdit));
+    $jsonEdit = json_decode($resEdit, true);
+
+    if (isset($jsonEdit['status']['code']) && $jsonEdit['status']['code'] !== 1) {
+        echo json_encode(['sucesso' => false, 'erro' => $jsonEdit['status']['message'] ?: 'Erro ao gravar no Databit.']);
+        exit;
+    }
+
+    echo json_encode([
+        'sucesso' => true,
+        'mensagem' => "OS {$os} atribuída com sucesso! Atualizada para o Status 03."
+    ]);
+    exit;
+}
 
 // 1. Baixar chamados ao vivo do cham1.php
 $ctx = stream_context_create([
@@ -96,12 +155,14 @@ foreach ($semTriagem as &$item) {
         'defeito' => 'Não informado',
         'status' => '00',
         'modelo' => 'Equipamento não cadastrado',
-        'numserie' => ''
+        'numserie' => '',
+        'codtec' => '0000'
     ];
     $item['defeito'] = $info['defeito'];
     $item['status'] = !empty($info['status']) ? $info['status'] : '00';
     $item['modelo'] = !empty($info['modelo']) ? $info['modelo'] : 'Equipamento não cadastrado';
     $item['numserie'] = !empty($info['numserie']) ? $info['numserie'] : '';
+    $item['codtec'] = !empty($info['codtec']) ? $info['codtec'] : '0000';
 
     if ($item['status'] === '01') {
         $qtdStatus01++;
@@ -116,12 +177,14 @@ foreach ($comTriagem as &$item) {
         'defeito' => 'Não informado',
         'status' => '03',
         'modelo' => 'Equipamento não cadastrado',
-        'numserie' => ''
+        'numserie' => '',
+        'codtec' => '0000'
     ];
     $item['defeito'] = $info['defeito'];
     $item['status'] = !empty($info['status']) ? $info['status'] : '03';
     $item['modelo'] = !empty($info['modelo']) ? $info['modelo'] : 'Equipamento não cadastrado';
     $item['numserie'] = !empty($info['numserie']) ? $info['numserie'] : '';
+    $item['codtec'] = !empty($info['codtec']) ? $info['codtec'] : '0000';
 }
 unset($item);
 
@@ -144,7 +207,7 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
         ]
     ];
 
-    // 4.1 Buscar OS (motivo, observação, statusos, produto e numserie)
+    // 4.1 Buscar OS (motivo, observação, statusos, produto, numserie, codtec)
     $opts['http']['content'] = $filtroOS;
     $resOS = @file_get_contents($baseUrl . 'OsController/listar', false, stream_context_create($opts));
     $dadosOS = [];
@@ -162,7 +225,8 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
                 'obs' => !empty($o['obs']) ? trim($o['obs']) : '',
                 'statusos' => !empty($o['statusos']) ? trim($o['statusos']) : '00',
                 'produto' => $codProd,
-                'numserie' => !empty($o['numserie']) ? trim($o['numserie']) : ''
+                'numserie' => !empty($o['numserie']) ? trim($o['numserie']) : '',
+                'codtec' => !empty($o['codtec']) ? trim($o['codtec']) : '0000'
             ];
         }
     }
@@ -230,6 +294,7 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
         $statusFinal = isset($dadosOS[$numOS]['statusos']) ? $dadosOS[$numOS]['statusos'] : '00';
         $numserieFinal = isset($dadosOS[$numOS]['numserie']) ? $dadosOS[$numOS]['numserie'] : '';
         $codProd = isset($dadosOS[$numOS]['produto']) ? $dadosOS[$numOS]['produto'] : '';
+        $codtecFinal = isset($dadosOS[$numOS]['codtec']) ? $dadosOS[$numOS]['codtec'] : '0000';
         $modeloFinal = isset($mapaProdutos[$codProd]) ? $mapaProdutos[$codProd] : 'Equipamento não cadastrado';
 
         // 1ª Prioridade: Motivo direto da OS
@@ -267,7 +332,8 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
             'defeito' => $defeitoFinal,
             'status' => $statusFinal,
             'modelo' => $modeloFinal,
-            'numserie' => $numserieFinal
+            'numserie' => $numserieFinal,
+            'codtec' => $codtecFinal
         ];
     }
 
@@ -280,6 +346,27 @@ function normalizarTexto($str) {
     }
     return mb_convert_encoding($str, 'UTF-8', 'ISO-8859-1');
 }
+
+// Lista de técnicos ativos para o modal
+$listaTecnicosFixa = [
+    ['codigo' => '0071', 'nome' => 'FABIANO'],
+    ['codigo' => '0083', 'nome' => 'LEIDIMAR'],
+    ['codigo' => '0081', 'nome' => 'MATHEUS'],
+    ['codigo' => '0046', 'nome' => 'GUILHERME'],
+    ['codigo' => '0059', 'nome' => 'SOLANO'],
+    ['codigo' => '0041', 'nome' => 'FELIPE'],
+    ['codigo' => '0034', 'nome' => 'BRENO'],
+    ['codigo' => '0016', 'nome' => 'RILIANE'],
+    ['codigo' => '0010', 'nome' => 'FABIO'],
+    ['codigo' => '0085', 'nome' => 'NINIVE'],
+    ['codigo' => '0074', 'nome' => 'GABRIEL'],
+    ['codigo' => '0076', 'nome' => 'DARLAN'],
+    ['codigo' => '0078', 'nome' => 'JEAN'],
+    ['codigo' => '0045', 'nome' => 'NILTON'],
+    ['codigo' => '0018', 'nome' => 'SUDESTE'],
+    ['codigo' => '0064', 'nome' => 'BRENO INT'],
+    ['codigo' => '0000', 'nome' => 'UNICO']
+];
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -429,6 +516,55 @@ function normalizarTexto($str) {
       word-break: break-word; line-height: 1.35;
     }
 
+    /* Linha de Ação para Definir Técnico */
+    .linha-acoes {
+      display: flex; justify-content: flex-end; margin-top: 4px; padding-top: 4px;
+      border-top: 1px dashed #e2e8f0;
+    }
+    .btn-definir-tecnico {
+      background: #0284c7; color: #fff; border: none; border-radius: 5px;
+      font-weight: 700; font-size: 11.5px; padding: 5px 12px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-definir-tecnico:active { transform: scale(0.98); }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);
+      z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+    }
+    @media (min-width: 600px) {
+      .modal-overlay { align-items: center; padding: 20px; }
+    }
+    .modal-card {
+      background: #fff; width: 100%; max-width: 500px; border-radius: 14px 14px 0 0;
+      padding: 16px; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 12px;
+    }
+    @media (min-width: 600px) {
+      .modal-card { border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); }
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+    .modal-header h3 { font-size: 16px; font-weight: 800; color: #0f172a; }
+    .modal-fechar { background: none; border: none; font-size: 18px; font-weight: bold; color: #64748b; cursor: pointer; }
+    .modal-os-info { background: #f8fafc; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+    .destaque-os { font-family: monospace; font-weight: 800; color: #0284c7; font-size: 15px; }
+    .modal-aviso { font-size: 12px; color: #0369a1; background: #e0f2fe; padding: 8px 10px; border-radius: 6px; border-left: 3px solid #0284c7; line-height: 1.4; }
+    .modal-campo { display: flex; flex-direction: column; gap: 6px; }
+    .modal-campo label { font-weight: 700; font-size: 13px; color: #334155; }
+    .select-tecnico { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 600; color: #0f172a; outline: none; background: #fff; }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+    .btn-cancelar { flex: 1; padding: 11px; border: 1px solid #cbd5e1; background: #f1f5f9; color: #475569; border-radius: 7px; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .btn-confirmar { flex: 2; padding: 11px; border: none; background: #0284c7; color: #fff; border-radius: 7px; font-weight: 800; font-size: 13.5px; cursor: pointer; }
+
+    /* Toast */
+    .toast-aviso {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 20px;
+      font-size: 13px; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 300;
+      max-width: 90%; text-align: center;
+    }
+
     .vazio { text-align: center; padding: 30px 10px; color: #94a3b8; font-size: 13px; }
   </style>
 </head>
@@ -499,6 +635,12 @@ function normalizarTexto($str) {
               <span class="defeito-icone">🔧</span>
               <span class="defeito-texto"><?= htmlspecialchars($c['defeito']) ?></span>
             </div>
+            <!-- LINHA 3 (AÇÃO DEFINIR TÉCNICO) -->
+            <div class="linha-acoes">
+              <button class="btn-definir-tecnico" onclick="abrirModalTecnico('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
+                👤 Definir Técnico
+              </button>
+            </div>
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
@@ -538,6 +680,12 @@ function normalizarTexto($str) {
               <span class="defeito-icone">🔧</span>
               <span class="defeito-texto"><?= htmlspecialchars($c['defeito']) ?></span>
             </div>
+            <!-- LINHA 3 (AÇÃO REATRIBUIR TÉCNICO) -->
+            <div class="linha-acoes">
+              <button class="btn-definir-tecnico" onclick="abrirModalTecnico('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
+                👤 Alterar Técnico
+              </button>
+            </div>
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
@@ -545,8 +693,44 @@ function normalizarTexto($str) {
 
   </div>
 
+  <!-- Modal Definir Técnico (Mobile Friendly) -->
+  <div id="modalTecnico" class="modal-overlay" style="display: none;" onclick="fecharModalSeFora(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>👤 Definir Técnico</h3>
+        <button class="modal-fechar" onclick="fecharModalTecnico()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-os-info">
+          <div><strong>OS:</strong> <span id="modalOsNum" class="destaque-os"></span></div>
+          <div><strong>Cliente:</strong> <span id="modalCliente"></span></div>
+        </div>
+        <p class="modal-aviso">
+          ⚡ Ao definir o técnico, a OS será atualizada no Databit para o <strong>Status 03</strong> e aparecerá diretamente no sistema do técnico.
+        </p>
+        <div class="modal-campo">
+          <label for="selectTecnico">Selecione o Técnico:</label>
+          <select id="selectTecnico" class="select-tecnico">
+            <option value="">-- Escolha o técnico --</option>
+            <?php foreach ($listaTecnicosFixa as $t): ?>
+              <option value="<?= $t['codigo'] ?>"><?= $t['nome'] ?> (<?= $t['codigo'] ?>)</option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancelar" onclick="fecharModalTecnico()">Cancelar</button>
+        <button class="btn-confirmar" id="btnSalvarTecnico" onclick="confirmarDefinicaoTecnico()">Confirmar (Status 03)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast de Notificação -->
+  <div id="toastNotificacao" class="toast-aviso" style="display: none;"></div>
+
   <script>
     let subStatusAtivo = '';
+    let osSelecionadaModal = null;
 
     function trocarAba(aba) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -589,6 +773,83 @@ function normalizarTexto($str) {
 
         el.style.display = (bateTexto && bateSub) ? 'flex' : 'none';
       });
+    }
+
+    function abrirModalTecnico(os, cliente, codtecAtual) {
+      osSelecionadaModal = os;
+      document.getElementById('modalOsNum').textContent = os;
+      document.getElementById('modalCliente').textContent = cliente;
+      const select = document.getElementById('selectTecnico');
+      if (select && codtecAtual) {
+        select.value = codtecAtual;
+      }
+      document.getElementById('modalTecnico').style.display = 'flex';
+    }
+
+    function fecharModalTecnico() {
+      document.getElementById('modalTecnico').style.display = 'none';
+      osSelecionadaModal = null;
+    }
+
+    function fecharModalSeFora(e) {
+      if (e.target && e.target.id === 'modalTecnico') {
+        fecharModalTecnico();
+      }
+    }
+
+    async function confirmarDefinicaoTecnico() {
+      const select = document.getElementById('selectTecnico');
+      const codtec = select.value;
+      const nomeTecnico = select.options[select.selectedIndex]?.text || '';
+      const btn = document.getElementById('btnSalvarTecnico');
+
+      if (!codtec) {
+        alert('Por favor, selecione um técnico na lista.');
+        return;
+      }
+
+      if (!osSelecionadaModal) {
+        fecharModalTecnico();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Gravando no Databit...';
+
+      const formData = new FormData();
+      formData.append('acao', 'definir_tecnico');
+      formData.append('os', osSelecionadaModal);
+      formData.append('codtec', codtec);
+      formData.append('nomeTecnico', nomeTecnico);
+
+      try {
+        const res = await fetch(window.location.pathname, {
+          method: 'POST',
+          body: formData
+        });
+        const json = await res.json();
+        if (json.sucesso) {
+          mostrarToast(`✅ OS ${osSelecionadaModal} atribuída com sucesso! Atualizada para Status 03.`);
+          fecharModalTecnico();
+          setTimeout(() => { window.location.reload(); }, 1500);
+        } else {
+          alert('Erro ao atribuir técnico: ' + (json.erro || 'Falha'));
+          btn.disabled = false;
+          btn.textContent = 'Confirmar (Status 03)';
+        }
+      } catch (err) {
+        alert('Erro de comunicação: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Confirmar (Status 03)';
+      }
+    }
+
+    function mostrarToast(msg, duracao = 4000) {
+      const t = document.getElementById('toastNotificacao');
+      if (!t) return;
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, duracao);
     }
 
     let t = 60;

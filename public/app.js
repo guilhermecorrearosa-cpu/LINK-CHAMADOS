@@ -6,11 +6,14 @@
  * Defeito chamativo em caixa de alerta âmbar
  * Modelo do equipamento e número de série
  * Exibição de Status 00, Status 01 e filtros rápidos
+ * Ação para Definir Técnico e alterar para Status 03
  */
 
 let dados = { semTriagem: [], comTriagem: [] };
+let listaTecnicos = [];
 let abaAtiva = 'sem-triagem';
 let subStatusAtivo = '';
+let osSelecionadaModal = null;
 
 function trocarAba(aba) {
   abaAtiva = aba;
@@ -43,14 +46,28 @@ function filtrarSubStatus(st) {
   renderizar();
 }
 
+function escapeHtml(str) {
+  return (str || '').replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[tag] || tag));
+}
+
+function escapeJsParam(str) {
+  return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 function criarItemHTML(item, isComTriagem) {
   const atrasadoClass = item.atrasado ? 'atrasado' : '';
   const st = item.status || (isComTriagem ? '03' : '00');
   const modelo = item.modelo || 'Equipamento não cadastrado';
-  const serie = item.numserie ? `<span class="equip-serie">(${item.numserie})</span>` : '';
+  const serie = item.numserie ? `<span class="equip-serie">(${escapeHtml(item.numserie)})</span>` : '';
   
   const rightTag = isComTriagem
-    ? `<span class="tag-tecnico" style="background-color: ${item.corTecnico || '#cbd5e1'}">${item.tecnico}</span>`
+    ? `<span class="tag-tecnico" style="background-color: ${item.corTecnico || '#cbd5e1'}">${escapeHtml(item.tecnico)}</span>`
     : `<span class="tag-sla ${parseInt(item.sla) < 0 ? 'sla-atraso' : 'sla-normal'}">${item.sla}h</span>`;
 
   return `
@@ -59,13 +76,13 @@ function criarItemHTML(item, isComTriagem) {
       <div class="linha-1">
         <div class="os-cli">
           <div class="os-topo-info">
-            <span class="os-num">${item.os}</span>
+            <span class="os-num">${escapeHtml(item.os)}</span>
             <span class="tag-status tag-status-${st}">Status ${st}</span>
-            <span class="badge-cidade">📍 ${item.cidade || ''}</span>
+            <span class="badge-cidade">📍 ${escapeHtml(item.cidade || '')}</span>
           </div>
-          <div class="cliente-nome">${item.cliente}</div>
+          <div class="cliente-nome">${escapeHtml(item.cliente)}</div>
           <div class="linha-equip">
-            🖨️ <span class="equip-modelo">${modelo}</span>
+            🖨️ <span class="equip-modelo">${escapeHtml(modelo)}</span>
             ${serie}
           </div>
         </div>
@@ -76,7 +93,13 @@ function criarItemHTML(item, isComTriagem) {
       <!-- LINHA 2: O DEFEITO CHAMATIVO DO DATABIT -->
       <div class="caixa-defeito">
         <span class="defeito-icone">🔧</span>
-        <span class="defeito-texto">${item.defeito || 'Defeito não informado'}</span>
+        <span class="defeito-texto">${escapeHtml(item.defeito || 'Defeito não informado')}</span>
+      </div>
+      <!-- LINHA 3: AÇÃO DEFINIR TÉCNICO (STATUS 03) -->
+      <div class="linha-acoes">
+        <button class="btn-definir-tecnico" onclick="abrirModalTecnico('${item.os}', '${escapeJsParam(item.cliente)}', '${item.codtec || ''}')">
+          👤 Definir Técnico
+        </button>
       </div>
     </div>
   `;
@@ -152,6 +175,112 @@ async function carregar() {
   }
 }
 
+async function carregarTecnicos() {
+  try {
+    const res = await fetch('/api/tecnicos');
+    const json = await res.json();
+    if (json.sucesso && Array.isArray(json.tecnicos)) {
+      listaTecnicos = json.tecnicos;
+      popularSelectTecnicos();
+    }
+  } catch (err) {
+    console.error('Erro ao carregar técnicos:', err);
+  }
+}
+
+function popularSelectTecnicos(codtecPreselecionado = '') {
+  const select = document.getElementById('selectTecnico');
+  if (!select) return;
+
+  if (listaTecnicos.length === 0) {
+    select.innerHTML = '<option value="">Nenhum técnico disponível</option>';
+    return;
+  }
+
+  let html = '<option value="">-- Escolha o técnico --</option>';
+  for (const t of listaTecnicos) {
+    const sel = t.codigo === codtecPreselecionado ? 'selected' : '';
+    html += `<option value="${t.codigo}" ${sel}>${t.nome} (${t.codigo})</option>`;
+  }
+  select.innerHTML = html;
+}
+
+function abrirModalTecnico(os, cliente, codtecAtual = '') {
+  osSelecionadaModal = os;
+  document.getElementById('modalOsNum').textContent = os;
+  document.getElementById('modalCliente').textContent = cliente;
+  popularSelectTecnicos(codtecAtual);
+  document.getElementById('modalTecnico').style.display = 'flex';
+}
+
+function fecharModalTecnico() {
+  document.getElementById('modalTecnico').style.display = 'none';
+  osSelecionadaModal = null;
+}
+
+function fecharModalSeFora(e) {
+  if (e.target && e.target.id === 'modalTecnico') {
+    fecharModalTecnico();
+  }
+}
+
+async function confirmarDefinicaoTecnico() {
+  const select = document.getElementById('selectTecnico');
+  const codtec = select.value;
+  const nomeTecnico = select.options[select.selectedIndex]?.text || '';
+  const btn = document.getElementById('btnSalvarTecnico');
+
+  if (!codtec) {
+    alert('Por favor, selecione um técnico na lista.');
+    return;
+  }
+
+  if (!osSelecionadaModal) {
+    fecharModalTecnico();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Gravando no Databit...';
+
+  try {
+    const res = await fetch('/api/definir-tecnico', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        os: osSelecionadaModal,
+        codtec: codtec,
+        nomeTecnico: nomeTecnico
+      })
+    });
+
+    const json = await res.json();
+    if (json.sucesso) {
+      mostrarToast(`✅ OS ${osSelecionadaModal} atribuída com sucesso! Atualizada para Status 03.`);
+      fecharModalTecnico();
+      // Recarregar os chamados na hora
+      await carregar();
+    } else {
+      alert(`Erro ao atribuir técnico: ${json.erro || 'Falha desconhecida.'}`);
+    }
+  } catch (err) {
+    alert(`Erro de comunicação com o servidor: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Confirmar (Status 03)';
+  }
+}
+
+function mostrarToast(msg, duracao = 4000) {
+  const t = document.getElementById('toastNotificacao');
+  if (!t) return;
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => {
+    t.style.display = 'none';
+  }, duracao);
+}
+
 // Timer regressivo de 60 segundos
 let tempo = 60;
 setInterval(() => {
@@ -164,4 +293,5 @@ setInterval(() => {
   if (el) el.textContent = tempo;
 }, 1000);
 
+carregarTecnicos();
 carregar();
