@@ -1,21 +1,17 @@
 <?php
 /**
  * Mil Cópias - Painel de Chamados Ultra-Compacto para Celular
- * Layout de 1 a 2 linhas por OS - Sem cortar nome do cliente e sem '#'
+ * Integração Direta com a API Databit ERP (http://databitbh.com:54235/databitservice/)
+ * Layout: 1 a 2 linhas por OS, sem corte de nome de cliente e sem '#'
  */
 
-// 1. Configurações da API Databit DataSnap
-$databit_host = '192.168.1.206';
-$databit_porta = '8099';
-$databit_user = 'ADMIN';
-$databit_pass = 'masterkey';
-
+$api_base_url = 'http://databitbh.com:54235/databitservice/';
 $cham1_url = 'http://databitbh.com:51202/mc/cham1.php';
 
-// 2. Baixar dados ao vivo do cham1.php
+// 1. Baixar chamados ao vivo do cham1.php
 $ctx = stream_context_create([
     'http' => [
-        'timeout' => 5,
+        'timeout' => 6,
         'header' => "User-Agent: Mozilla/5.0 (Mobile)\r\n"
     ]
 ]);
@@ -24,9 +20,10 @@ $html = @file_get_contents($cham1_url, false, $ctx);
 
 $semTriagem = [];
 $comTriagem = [];
+$todasOS = [];
 
 if ($html) {
-    // 3. Interpretar "Sem Triagem"
+    // 2. Extrair "Sem Triagem"
     if (preg_match('/<h5 class="card-header">Sem triagem[\s\S]*?<table[\s\S]*?<\/thead>([\s\S]*?)<\/table>/i', $html, $m1)) {
         preg_match_all('/<tr[\s\S]*?<\/tr>/i', $m1[1], $rows);
         foreach ($rows[0] as $row) {
@@ -34,22 +31,23 @@ if ($html) {
             $cols = array_map(function($c) { return trim(strip_tags($c)); }, $tds[1]);
             if (count($cols) >= 7) {
                 $isAtrasado = (strpos($row, '#FF7F50') !== false || strpos($row, 'spinner-grow') !== false);
+                $osNum = $cols[0];
+                $todasOS[] = $osNum;
                 $semTriagem[] = [
-                    'os' => $cols[0],
+                    'os' => $osNum,
                     'cliente' => $cols[1],
                     'local' => $cols[2],
                     'cidade' => $cols[3],
                     'origem' => $cols[4],
                     'data' => $cols[5],
                     'sla' => $cols[6],
-                    'atrasado' => $isAtrasado,
-                    'defeito' => buscarDefeito($cols[0], $databit_host, $databit_porta, $databit_user, $databit_pass)
+                    'atrasado' => $isAtrasado
                 ];
             }
         }
     }
 
-    // 4. Interpretar "Com Triagem"
+    // 3. Extrair "Com Triagem"
     if (preg_match('/<h5 class="card-header">Com triagem[\s\S]*?<table[\s\S]*?<\/thead>([\s\S]*?)<\/table>/i', $html, $m2)) {
         preg_match_all('/<tr[\s\S]*?<\/tr>/i', $m2[1], $rows);
         foreach ($rows[0] as $row) {
@@ -63,58 +61,156 @@ if ($html) {
 
             if (count($cols) >= 6) {
                 $isAtrasado = (strpos($row, '#FF7F50') !== false);
+                $osNum = $cols[0];
+                $todasOS[] = $osNum;
                 $comTriagem[] = [
-                    'os' => $cols[0],
+                    'os' => $osNum,
                     'cliente' => $cols[1],
                     'local' => $cols[2],
                     'cidade' => $cols[3],
                     'encaminhado' => $cols[4],
                     'tecnico' => $cols[5],
                     'corTecnico' => $corTecnico,
-                    'atrasado' => $isAtrasado,
-                    'defeito' => buscarDefeito($cols[0], $databit_host, $databit_porta, $databit_user, $databit_pass)
+                    'atrasado' => $isAtrasado
                 ];
             }
         }
     }
 }
 
-function buscarDefeito($os, $host, $port, $user, $pass) {
-    static $cache = [];
-    if (isset($cache[$os])) return $cache[$os];
+// 4. Buscar defeitos reais em lote na API do Databit
+$defeitosReais = carregarDefeitosReaisEmLote($todasOS, $api_base_url);
 
-    $url = "http://{$host}:{$port}/datasnap/rest/OsController/listar";
-    $payload = json_encode(['filtro' => "codigo = '{$os}' or codigo = '" . ltrim($os, '0') . "'"]);
+// 5. Vincular defeito real a cada OS
+foreach ($semTriagem as &$item) {
+    $item['defeito'] = isset($defeitosReais[$item['os']]) ? $defeitosReais[$item['os']] : 'Não informado';
+}
+unset($item);
+
+foreach ($comTriagem as &$item) {
+    $item['defeito'] = isset($defeitosReais[$item['os']]) ? $defeitosReais[$item['os']] : 'Não informado';
+}
+unset($item);
+
+/**
+ * Consulta a API Databit para trazer o defeito real de cada OS
+ */
+function carregarDefeitosReaisEmLote($listaOS, $baseUrl) {
+    if (empty($listaOS)) return [];
+
+    $mapaDefeitos = [];
+    $inClause = implode("','", array_unique($listaOS));
+    $filtroOS = json_encode(['filtro' => "codigo in ('{$inClause}') and situacao = 'A'"]);
+    $filtroDef = json_encode(['filtro' => "codigo in ('{$inClause}')"]);
 
     $opts = [
         'http' => [
             'method' => 'POST',
-            'header' => "Content-Type: application/json\r\n" .
-                        "Authorization: Basic " . base64_encode("{$user}:{$pass}") . "\r\n",
-            'content' => $payload,
-            'timeout' => 1
+            'header' => "Content-Type: application/json\r\nAccept: application/json\r\n",
+            'timeout' => 6
         ]
     ];
 
-    $resp = @file_get_contents($url, false, stream_context_create($opts));
-    if ($resp) {
-        $json = json_decode($resp, true);
-        $dados = isset($json['value']) ? $json['value'] : $json;
-        if (is_array($dados) && !empty($dados[0])) {
-            $osData = $dados[0];
-            // Prioriza defeito / motivo
-            $defeitoEncontrado = !empty($osData['defeitoDesc']) ? $osData['defeitoDesc'] :
-                                 (!empty($osData['motivo']) ? $osData['motivo'] :
-                                 (!empty($osData['obs']) ? $osData['obs'] : ''));
-            if ($defeitoEncontrado) {
-                $cache[$os] = trim($defeitoEncontrado);
-                return $cache[$os];
+    // 4.1 Buscar OS (motivo e observação)
+    $opts['http']['content'] = $filtroOS;
+    $resOS = @file_get_contents($baseUrl . 'OsController/listar', false, stream_context_create($opts));
+    $dadosOS = [];
+    if ($resOS) {
+        $jsonOS = json_decode($resOS, true);
+        $itensOS = isset($jsonOS['value']) ? $jsonOS['value'] : (is_array($jsonOS) ? $jsonOS : []);
+        foreach ($itensOS as $o) {
+            $dadosOS[$o['codigo']] = [
+                'motivo' => !empty($o['motivo']) ? trim($o['motivo']) : '',
+                'obs' => !empty($o['obs']) ? trim($o['obs']) : ''
+            ];
+        }
+    }
+
+    // 4.2 Buscar OsDefeito (defeito específico e observação da ocorrência)
+    $opts['http']['content'] = $filtroDef;
+    $resDef = @file_get_contents($baseUrl . 'OsDefeitoController/listar', false, stream_context_create($opts));
+    $dadosDef = [];
+    $codigosCatalogo = [];
+    if ($resDef) {
+        $jsonDef = json_decode($resDef, true);
+        $itensDef = isset($jsonDef['value']) ? $jsonDef['value'] : (is_array($jsonDef) ? $jsonDef : []);
+        foreach ($itensDef as $d) {
+            $osCod = $d['codigo'];
+            $obsDef = !empty($d['obs']) ? trim($d['obs']) : '';
+            $defCod = !empty($d['defeito']) ? trim($d['defeito']) : '';
+            
+            if ($defCod && $defCod !== '0219') {
+                $codigosCatalogo[] = $defCod;
+            }
+            if (!isset($dadosDef[$osCod])) {
+                $dadosDef[$osCod] = [];
+            }
+            $dadosDef[$osCod][] = ['obs' => $obsDef, 'codigo' => $defCod];
+        }
+    }
+
+    // 4.3 Se houver códigos numéricos de defeito (ex: 0003, 0195), traduzir via catálogo
+    $nomesCatalogo = [];
+    if (!empty($codigosCatalogo)) {
+        $inCat = implode("','", array_unique($codigosCatalogo));
+        $opts['http']['content'] = json_encode(['filtro' => "codigo in ('{$inCat}')"]);
+        $resCat = @file_get_contents($baseUrl . 'DefeitoController/listar', false, stream_context_create($opts));
+        if ($resCat) {
+            $jsonCat = json_decode($resCat, true);
+            $itensCat = isset($jsonCat['value']) ? $jsonCat['value'] : (is_array($jsonCat) ? $jsonCat : []);
+            foreach ($itensCat as $c) {
+                if (!empty($c['codigo']) && !empty($c['nome'])) {
+                    $nomesCatalogo[$c['codigo']] = trim($c['nome']);
+                }
             }
         }
     }
 
-    $cache[$os] = 'Aguardando sincronização com Databit';
-    return $cache[$os];
+    // 4.4 Consolidação da melhor descrição de defeito para cada OS
+    foreach ($listaOS as $numOS) {
+        $defeitoFinal = '';
+
+        // 1ª Prioridade: Motivo direto da OS (o que o cliente reclamou)
+        if (!empty($dadosOS[$numOS]['motivo'])) {
+            $defeitoFinal = $dadosOS[$numOS]['motivo'];
+        }
+
+        // 2ª Prioridade: Se não tem motivo, verificar OsDefeitoController
+        if (!$defeitoFinal && !empty($dadosDef[$numOS])) {
+            foreach ($dadosDef[$numOS] as $dItem) {
+                if (!empty($dItem['obs']) && stripos($dItem['obs'], 'HELPDESK') === false) {
+                    $defeitoFinal = $dItem['obs'];
+                    break;
+                }
+                if (!empty($dItem['codigo']) && isset($nomesCatalogo[$dItem['codigo']])) {
+                    $defeitoFinal = $nomesCatalogo[$dItem['codigo']];
+                    break;
+                }
+            }
+        }
+
+        // 3ª Prioridade: Campo de observação da OS
+        if (!$defeitoFinal && !empty($dadosOS[$numOS]['obs'])) {
+            $defeitoFinal = $dadosOS[$numOS]['obs'];
+        }
+
+        // Limpeza de texto e formatação
+        if ($defeitoFinal) {
+            $defeitoFinal = ltrim($defeitoFinal, "- \t\n\r");
+            $mapaDefeitos[$numOS] = normalizarTexto($defeitoFinal);
+        } else {
+            $mapaDefeitos[$numOS] = 'Defeito não detalhado no sistema';
+        }
+    }
+
+    return $mapaDefeitos;
+}
+
+function normalizarTexto($str) {
+    if (mb_check_encoding($str, 'UTF-8')) {
+        return $str;
+    }
+    return mb_convert_encoding($str, 'UTF-8', 'ISO-8859-1');
 }
 ?>
 <!DOCTYPE html>
@@ -210,7 +306,7 @@ function buscarDefeito($os, $host, $port, $user, $pass) {
     .sla-atraso { background: #fee2e2; color: #dc2626; }
     .sla-normal { background: #f1f5f9; color: #475569; }
 
-    /* Linha 2: O Defeito */
+    /* Linha 2: O Defeito Real do Databit */
     .linha-2 {
       display: flex; align-items: flex-start; gap: 4px; font-size: 12px;
       color: #334155; line-height: 1.3;
@@ -273,7 +369,7 @@ function buscarDefeito($os, $host, $port, $user, $pass) {
                 </span>
               </div>
             </div>
-            <!-- LINHA 2 (O DEFEITO) -->
+            <!-- LINHA 2 (O DEFEITO REAL DO DATABIT) -->
             <div class="linha-2">
               <span class="defeito-icone">🔧</span>
               <span class="defeito-texto"><?= htmlspecialchars($c['defeito']) ?></span>
@@ -305,7 +401,7 @@ function buscarDefeito($os, $host, $port, $user, $pass) {
                 </span>
               </div>
             </div>
-            <!-- LINHA 2 (O DEFEITO) -->
+            <!-- LINHA 2 (O DEFEITO REAL DO DATABIT) -->
             <div class="linha-2">
               <span class="defeito-icone">🔧</span>
               <span class="defeito-texto"><?= htmlspecialchars($c['defeito']) ?></span>

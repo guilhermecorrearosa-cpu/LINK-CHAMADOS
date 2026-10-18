@@ -1,5 +1,8 @@
 /**
- * Frontend Ultra-Compacto (1 a 2 linhas por OS)
+ * Frontend Ultra-Compacto para Celular (Mil Cópias)
+ * Sem '#' na frente da OS
+ * Nome do cliente completo, sem cortes
+ * Defeito real puxado da API do Databit
  */
 
 let dados = { semTriagem: [], comTriagem: [] };
@@ -27,21 +30,23 @@ function criarItemHTML(item, isComTriagem) {
 
   return `
     <div class="item-os ${atrasadoClass}" data-texto="${(item.os + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
-      <!-- LINHA 1: OS + Cliente + Cidade + SLA/Técnico -->
+      <!-- LINHA 1: OS + Cliente Completo + Cidade + SLA/Técnico -->
       <div class="linha-1">
         <div class="os-cli">
-          <span class="os-num">#${item.os}</span>
-          <span class="cliente-nome" title="${item.cliente}">${item.cliente}</span>
+          <div class="os-topo-info">
+            <span class="os-num">${item.os}</span>
+            <span class="cidade-nome">📍 ${item.cidade || ''}</span>
+          </div>
+          <div class="cliente-nome">${item.cliente}</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-          <span class="cidade-nome">${item.cidade || ''}</span>
+        <div class="tags-status">
           ${rightTag}
         </div>
       </div>
-      <!-- LINHA 2: O DEFEITO -->
+      <!-- LINHA 2: O DEFEITO REAL DO DATABIT -->
       <div class="linha-2">
         <span class="defeito-icone">🔧</span>
-        <span class="defeito-texto">${item.defeito || 'Sem defeito cadastrado'}</span>
+        <span class="defeito-texto">${item.defeito || 'Defeito não informado'}</span>
       </div>
     </div>
   `;
@@ -97,7 +102,7 @@ async function carregar() {
   }
 }
 
-// Timer regressivo
+// Timer regressivo de 60 segundos
 let tempo = 60;
 setInterval(() => {
   tempo--;
@@ -105,7 +110,8 @@ setInterval(() => {
     tempo = 60;
     carregar();
   }
-  document.getElementById('contador').textContent = tempo;
+  const el = document.getElementById('contador');
+  if (el) el.textContent = tempo;
 }, 1000);
 
 carregar();

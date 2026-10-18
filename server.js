@@ -10,120 +10,145 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configurações do Databit
-let databitConfig = {
-  host: process.env.DATABIT_HOST || '192.168.1.206',
-  port: parseInt(process.env.DATABIT_PORT || '8099', 10),
-  usuario: process.env.DATABIT_USER || 'ADMIN',
-  senha: process.env.DATABIT_PASS || 'masterkey',
-  timeout: 1000 // 1 segundo de timeout
-};
-
+const API_BASE_URL = process.env.DATABIT_API_URL || 'http://databitbh.com:54235/databitservice/';
 const CHAM1_URL = process.env.CHAM1_URL || 'http://databitbh.com:51202/mc/cham1.php';
 
-// Cache em memória de defeitos de OS para máxima performance
-const defeitoCache = new Map();
-
-// Defeitos comuns para enriquecimento / fallback
-const defeitosExemplo = [
-  'Impressora atolando papel na gaveta 1',
-  'Mancha preta contínua na lateral direita da folha',
-  'Equipamento não conecta na rede / IP inacessível',
-  'Barulho anormal ao tracionar papel da bandeja manual',
-  'Erro de fusor exibido no painel (Reinicialização solicitada)',
-  'Falha no alimentador automático (ADF) ao digitalizar',
-  'Toner substituído mas mensagem de vazio persiste',
-  'Impressão saindo muito clara / falhas no cilindro'
-];
-
-function obterDefeitoFallback(numOS) {
-  const seed = parseInt(numOS.replace(/\D/g, '') || '0', 10);
-  return defeitosExemplo[seed % defeitosExemplo.length];
-}
+// Cache em memória de catálogo de defeitos (ex: 0003 -> RETIRADA DE EQUIPAMENTO)
+let catalogoDefeitosCache = null;
 
 /**
- * Cliente DataSnap Databit ERP usando fetch nativo com timeout estrito
+ * Consulta a API do Databit ERP em lote para obter o motivo/defeito real das OS
  */
-async function chamarDatabit(endpoint, body = {}, timeoutMs = 1000) {
-  const url = `http://${databitConfig.host}:${databitConfig.port}/datasnap/rest/${endpoint}`;
-  const authHeader = 'Basic ' + Buffer.from(`${databitConfig.usuario}:${databitConfig.senha}`).toString('base64');
+async function carregarDefeitosReais(listaOS) {
+  if (!listaOS || listaOS.length === 0) return {};
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Authorization': authHeader
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(timeoutMs)
-  });
+  const mapaDefeitos = {};
+  const osUnicas = [...new Set(listaOS)];
+  const inClause = osUnicas.join("','");
 
-  if (!res.ok) {
-    throw new Error(`Databit status ${res.status}`);
-  }
-
-  const parsed = await res.json();
-  const data = (parsed && parsed.value) ? parsed.value : parsed;
-  return Array.isArray(data) ? data : [data];
-}
-
-/**
- * Testa se a API Databit está online
- */
-async function testarConexaoDatabit() {
   try {
-    const res = await chamarDatabit('TecnicoController/listar', { filtro: "situacao = 'A'" }, 800);
-    return res && res.length > 0;
-  } catch (e) {
-    return false;
-  }
-}
+    // 1. Buscar dados principais das OS em lote (motivo e observação)
+    const resOS = await fetch(`${API_BASE_URL}OsController/listar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ filtro: `codigo in ('${inClause}') and situacao = 'A'` }),
+      signal: AbortSignal.timeout(6000)
+    });
 
-/**
- * Busca detalhes e defeito de uma OS no Databit
- */
-async function buscarDefeitoDatabit(numOS, apiOnline) {
-  if (defeitoCache.has(numOS)) {
-    return defeitoCache.get(numOS);
-  }
-
-  if (apiOnline) {
-    try {
-      const codigoLimpo = numOS.replace(/^0+/, '');
-      const res = await chamarDatabit('OsController/listar', {
-        filtro: `codigo = '${codigoLimpo}' or codigo = '${numOS}'`
-      }, 1000);
-
-      if (res && res.length > 0) {
-        const os = res[0];
-        const motivo = os.motivo || os.obs || os.defeitoDesc || 'Sem descrição cadastrada';
-        const info = {
-          motivo: motivo.trim(),
-          numserie: os.numserie || '',
-          modelo: os.nomeProduto || '',
-          solicitante: os.solicitante || ''
+    const dadosOS = {};
+    if (resOS.ok) {
+      const jsonOS = await resOS.json();
+      const itensOS = jsonOS.value || (Array.isArray(jsonOS) ? jsonOS : []);
+      for (const o of itensOS) {
+        dadosOS[o.codigo] = {
+          motivo: (o.motivo || '').trim(),
+          obs: (o.obs || '').trim()
         };
-        defeitoCache.set(numOS, info);
-        return info;
       }
-    } catch (err) {
-      // Falha pontual
     }
+
+    // 2. Buscar ocorrências de defeitos (OsDefeitoController)
+    const resDef = await fetch(`${API_BASE_URL}OsDefeitoController/listar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ filtro: `codigo in ('${inClause}')` }),
+      signal: AbortSignal.timeout(6000)
+    });
+
+    const dadosDef = {};
+    const codigosCatalogo = [];
+    if (resDef.ok) {
+      const jsonDef = await resDef.json();
+      const itensDef = jsonDef.value || (Array.isArray(jsonDef) ? jsonDef : []);
+      for (const d of itensDef) {
+        const codOS = d.codigo;
+        const obsDef = (d.obs || '').trim();
+        const defCod = (d.defeito || '').trim();
+
+        if (defCod && defCod !== '0219') {
+          codigosCatalogo.push(defCod);
+        }
+        if (!dadosDef[codOS]) {
+          dadosDef[codOS] = [];
+        }
+        dadosDef[codOS].push({ obs: obsDef, codigo: defCod });
+      }
+    }
+
+    // 3. Carregar catálogo de defeitos se houver códigos numéricos
+    let mapaCatalogo = {};
+    if (codigosCatalogo.length > 0) {
+      const catUnicos = [...new Set(codigosCatalogo)];
+      const inCat = catUnicos.join("','");
+      try {
+        const resCat = await fetch(`${API_BASE_URL}DefeitoController/listar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ filtro: `codigo in ('${inCat}')` }),
+          signal: AbortSignal.timeout(5000)
+        });
+        if (resCat.ok) {
+          const jsonCat = await resCat.json();
+          const itensCat = jsonCat.value || (Array.isArray(jsonCat) ? jsonCat : []);
+          for (const c of itensCat) {
+            if (c.codigo && c.nome) {
+              mapaCatalogo[c.codigo] = c.nome.trim();
+            }
+          }
+        }
+      } catch (e) {
+        // Ignora falha de catálogo
+      }
+    }
+
+    // 4. Consolidar o melhor defeito/motivo para cada OS
+    for (const numOS of osUnicas) {
+      let defeitoFinal = '';
+
+      // 1ª Prioridade: Motivo direto da OS
+      if (dadosOS[numOS] && dadosOS[numOS].motivo) {
+        defeitoFinal = dadosOS[numOS].motivo;
+      }
+
+      // 2ª Prioridade: Observação do defeito ou nome do catálogo
+      if (!defeitoFinal && dadosDef[numOS]) {
+        for (const itemD of dadosDef[numOS]) {
+          if (itemD.obs && !itemD.obs.toUpperCase().includes('HELPDESK')) {
+            defeitoFinal = itemD.obs;
+            break;
+          }
+          if (itemD.codigo && mapaCatalogo[itemD.codigo]) {
+            defeitoFinal = mapaCatalogo[itemD.codigo];
+            break;
+          }
+        }
+      }
+
+      // 3ª Prioridade: Observação geral da OS
+      if (!defeitoFinal && dadosOS[numOS] && dadosOS[numOS].obs) {
+        defeitoFinal = dadosOS[numOS].obs;
+      }
+
+      if (defeitoFinal) {
+        defeitoFinal = defeitoFinal.replace(/^[- \t\n\r]+/, '');
+        mapaDefeitos[numOS] = defeitoFinal;
+      } else {
+        mapaDefeitos[numOS] = 'Defeito não detalhado no sistema';
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao consultar API Databit:', err.message);
   }
 
-  return {
-    motivo: obterDefeitoFallback(numOS),
-    numserie: '',
-    modelo: '',
-    solicitante: ''
-  };
+  return mapaDefeitos;
 }
 
 /**
- * Baixa o HTML ao vivo do cham1.php original com decodificação ISO-8859-1
+ * Baixa o HTML ao vivo do cham1.php original
  */
 async function baixarCham1Original() {
   const res = await fetch(CHAM1_URL, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Mobile)' },
     signal: AbortSignal.timeout(6000)
   });
   if (!res.ok) {
@@ -135,11 +160,12 @@ async function baixarCham1Original() {
 }
 
 /**
- * Parser do HTML de cham1.php
+ * Parser do HTML de cham1.php (apenas Sem Triagem e Com Triagem)
  */
 function interpretarCham1(html) {
   const semTriagem = [];
   const comTriagem = [];
+  const todasOS = [];
 
   // 1. Bloco "Sem triagem"
   const semTriagemMatch = html.match(/<h5 class="card-header">Sem triagem[\s\S]*?<table[\s\S]*?<\/thead>([\s\S]*?)<\/table>/i);
@@ -156,9 +182,11 @@ function interpretarCham1(html) {
       }
 
       if (cols.length >= 7) {
-        const isAtrasado = row.includes('#FF7F50') || row.includes('spinner-grow text-danger');
+        const isAtrasado = row.includes('#FF7F50') || row.includes('spinner-grow');
+        const osNum = cols[0];
+        todasOS.push(osNum);
         semTriagem.push({
-          os: cols[0],
+          os: osNum,
           cliente: cols[1],
           local: cols[2] || 'Geral',
           cidade: cols[3],
@@ -181,7 +209,7 @@ function interpretarCham1(html) {
       const cols = [];
       const colRegex = /<td([\s\S]*?)>([\s\S]*?)<\/td>/gi;
       let m;
-      let corTecnico = '';
+      let corTecnico = '#cbd5e1';
       let isAtrasado = row.includes('#FF7F50');
 
       while ((m = colRegex.exec(row)) !== null) {
@@ -198,14 +226,16 @@ function interpretarCham1(html) {
       }
 
       if (cols.length >= 6) {
+        const osNum = cols[0];
+        todasOS.push(osNum);
         comTriagem.push({
-          os: cols[0],
+          os: osNum,
           cliente: cols[1],
           local: cols[2] || 'Geral',
           cidade: cols[3],
           encaminhado: cols[4] || '',
           tecnico: cols[5] || 'A Definir',
-          corTecnico: corTecnico || '#e2e8f0',
+          corTecnico: corTecnico,
           checkIn: cols[6] || '',
           atrasado: isAtrasado
         });
@@ -213,82 +243,56 @@ function interpretarCham1(html) {
     }
   }
 
-  return { semTriagem, comTriagem };
+  return { semTriagem, comTriagem, todasOS };
 }
 
-// ROTA PRINCIPAL: Retorna chamados consolidados com defeito
+// ROTA PRINCIPAL: Retorna chamados consolidados com defeito real do Databit ERP
 app.get('/api/chamados', async (req, res) => {
   try {
-    const apiOnline = await testarConexaoDatabit();
-    const apiStatus = apiOnline ? 'online' : 'offline';
-
-    // Baixar dados em tempo real do cham1
     const html = await baixarCham1Original();
     const dados = interpretarCham1(html);
 
-    // Enriquecer cada OS com o defeito
-    const enriquecerLista = async (lista) => {
-      const promessas = lista.map(async (item) => {
-        const info = await buscarDefeitoDatabit(item.os, apiOnline);
-        return {
-          ...item,
-          defeito: info.motivo,
-          numserie: info.numserie,
-          modelo: info.modelo
-        };
-      });
-      return Promise.all(promessas);
-    };
+    // Buscar todos os defeitos reais na API oficial do Databit
+    const mapaDefeitos = await carregarDefeitosReais(dados.todasOS);
 
-    const [semTriagemEnriquecido, comTriagemEnriquecido] = await Promise.all([
-      enriquecerLista(dados.semTriagem),
-      enriquecerLista(dados.comTriagem)
-    ]);
+    // Inserir defeito em cada chamado
+    const semTriagemEnriquecido = dados.semTriagem.map(item => ({
+      ...item,
+      defeito: mapaDefeitos[item.os] || 'Não informado'
+    }));
+
+    const comTriagemEnriquecido = dados.comTriagem.map(item => ({
+      ...item,
+      defeito: mapaDefeitos[item.os] || 'Não informado'
+    }));
 
     res.json({
       sucesso: true,
       timestamp: new Date().toISOString(),
-      apiDatabit: apiStatus,
-      hostConfig: `${databitConfig.host}:${databitConfig.port}`,
-      totalSemTriagem: semTriagemEnriquecido.length,
-      totalComTriagem: comTriagemEnriquecido.length,
+      apiOrigem: 'http://databitbh.com:54235/databitservice/',
+      totais: {
+        semTriagem: semTriagemEnriquecido.length,
+        comTriagem: comTriagemEnriquecido.length,
+        total: semTriagemEnriquecido.length + comTriagemEnriquecido.length
+      },
       semTriagem: semTriagemEnriquecido,
       comTriagem: comTriagemEnriquecido
     });
-  } catch (error) {
-    console.error('Erro ao processar chamados:', error.message);
+  } catch (err) {
+    console.error('Erro ao processar chamados:', err);
     res.status(500).json({
       sucesso: false,
-      erro: error.message
+      erro: err.message
     });
   }
 });
 
-// ROTA DE CONFIGURAÇÃO: Permite alterar IP/Porta da API Databit
-app.get('/api/config', (req, res) => {
-  res.json({
-    host: databitConfig.host,
-    port: databitConfig.port,
-    usuario: databitConfig.usuario
-  });
+// Redirecionamento da raiz para a interface
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.post('/api/config', (req, res) => {
-  const { host, port, usuario, senha } = req.body;
-  if (host) databitConfig.host = host.trim();
-  if (port) databitConfig.port = parseInt(port, 10);
-  if (usuario) databitConfig.usuario = usuario.trim();
-  if (senha) databitConfig.senha = senha;
-  defeitoCache.clear();
-  res.json({ sucesso: true, mensagem: 'Configuração atualizada com sucesso!' });
-});
-
-// Inicialização do servidor
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('====================================================');
-  console.log('  PAINEL DE CHAMADOS MIL CÓPIAS - COM DEFEITO');
-  console.log(`  Local:   http://localhost:${PORT}`);
-  console.log(`  Rede:    http://0.0.0.0:${PORT}`);
-  console.log(`  Databit: ${databitConfig.host}:${databitConfig.port}`);
-  console.log('====================================================');
+app.listen(PORT, () => {
+  console.log(`[PAINEL MIL COPIAS] Servidor ativo em http://localhost:${PORT}`);
+  console.log(`[API INTEGRADA] Databit ERP: ${API_BASE_URL}`);
 });
