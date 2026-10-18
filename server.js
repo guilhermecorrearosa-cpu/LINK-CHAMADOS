@@ -14,7 +14,7 @@ const API_BASE_URL = process.env.DATABIT_API_URL || 'http://databitbh.com:54235/
 const CHAM1_URL = process.env.CHAM1_URL || 'http://databitbh.com:51202/mc/cham1.php';
 
 /**
- * Consulta a API do Databit ERP em lote para obter o motivo/defeito real e o status das OS
+ * Consulta a API do Databit ERP em lote para obter motivo/defeito real, status e modelo do equipamento
  */
 async function carregarDetalhesReais(listaOS) {
   if (!listaOS || listaOS.length === 0) return {};
@@ -24,7 +24,7 @@ async function carregarDetalhesReais(listaOS) {
   const inClause = osUnicas.join("','");
 
   try {
-    // 1. Buscar dados principais das OS em lote (motivo, observação e statusos)
+    // 1. Buscar dados principais das OS em lote (motivo, observação, statusos, produto, numserie)
     const resOS = await fetch(`${API_BASE_URL}OsController/listar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -33,19 +33,52 @@ async function carregarDetalhesReais(listaOS) {
     });
 
     const dadosOS = {};
+    const codigosProdutos = [];
     if (resOS.ok) {
       const jsonOS = await resOS.json();
       const itensOS = jsonOS.value || (Array.isArray(jsonOS) ? jsonOS : []);
       for (const o of itensOS) {
+        const codProd = (o.produto || '').trim();
+        if (codProd) {
+          codigosProdutos.push(codProd);
+        }
         dadosOS[o.codigo] = {
           motivo: (o.motivo || '').trim(),
           obs: (o.obs || '').trim(),
-          statusos: (o.statusos || '00').trim()
+          statusos: (o.statusos || '00').trim(),
+          produto: codProd,
+          numserie: (o.numserie || '').trim()
         };
       }
     }
 
-    // 2. Buscar ocorrências de defeitos (OsDefeitoController)
+    // 2. Buscar nomes dos produtos / modelos de equipamento
+    let mapaProdutos = {};
+    if (codigosProdutos.length > 0) {
+      const prodsUnicos = [...new Set(codigosProdutos)];
+      const inProd = prodsUnicos.join("','");
+      try {
+        const resProd = await fetch(`${API_BASE_URL}ProdutoController/listar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ filtro: `codigo in ('${inProd}')` }),
+          signal: AbortSignal.timeout(5000)
+        });
+        if (resProd.ok) {
+          const jsonProd = await resProd.json();
+          const itensProd = jsonProd.value || (Array.isArray(jsonProd) ? jsonProd : []);
+          for (const p of itensProd) {
+            if (p.codigo && p.nome) {
+              mapaProdutos[p.codigo] = p.nome.trim();
+            }
+          }
+        }
+      } catch (e) {
+        // Ignora falha de busca de produto
+      }
+    }
+
+    // 3. Buscar ocorrências de defeitos (OsDefeitoController)
     const resDef = await fetch(`${API_BASE_URL}OsDefeitoController/listar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -73,7 +106,7 @@ async function carregarDetalhesReais(listaOS) {
       }
     }
 
-    // 3. Carregar catálogo de defeitos se houver códigos numéricos
+    // 4. Carregar catálogo de defeitos se houver códigos numéricos
     let mapaCatalogo = {};
     if (codigosCatalogo.length > 0) {
       const catUnicos = [...new Set(codigosCatalogo)];
@@ -99,10 +132,13 @@ async function carregarDetalhesReais(listaOS) {
       }
     }
 
-    // 4. Consolidar o melhor defeito/motivo e status para cada OS
+    // 5. Consolidar os dados de cada OS
     for (const numOS of osUnicas) {
       let defeitoFinal = '';
       const statusFinal = (dadosOS[numOS] && dadosOS[numOS].statusos) ? dadosOS[numOS].statusos : '00';
+      const numserieFinal = (dadosOS[numOS] && dadosOS[numOS].numserie) ? dadosOS[numOS].numserie : '';
+      const codProd = (dadosOS[numOS] && dadosOS[numOS].produto) ? dadosOS[numOS].produto : '';
+      const modeloFinal = mapaProdutos[codProd] || 'Equipamento não cadastrado';
 
       // 1ª Prioridade: Motivo direto da OS
       if (dadosOS[numOS] && dadosOS[numOS].motivo) {
@@ -136,7 +172,9 @@ async function carregarDetalhesReais(listaOS) {
 
       mapaResultado[numOS] = {
         defeito: defeitoFinal,
-        status: statusFinal
+        status: statusFinal,
+        modelo: modeloFinal,
+        numserie: numserieFinal
       };
     }
   } catch (err) {
@@ -249,36 +287,50 @@ function interpretarCham1(html) {
   return { semTriagem, comTriagem, todasOS };
 }
 
-// ROTA PRINCIPAL: Retorna chamados consolidados com defeito real e status oficial
+// ROTA PRINCIPAL: Retorna chamados consolidados com defeito real, modelo e status
 app.get('/api/chamados', async (req, res) => {
   try {
     const html = await baixarCham1Original();
     const dados = interpretarCham1(html);
 
-    // Buscar todos os defeitos e status na API oficial do Databit
+    // Buscar defeitos, modelo e status na API oficial do Databit
     const detalhes = await carregarDetalhesReais(dados.todasOS);
 
     let qtdStatus00 = 0;
     let qtdStatus01 = 0;
 
-    // Inserir defeito e status em cada chamado
+    // Inserir defeito, modelo e status em cada chamado
     const semTriagemEnriquecido = dados.semTriagem.map(item => {
-      const info = detalhes[item.os] || { defeito: 'Não informado', status: '00' };
+      const info = detalhes[item.os] || {
+        defeito: 'Não informado',
+        status: '00',
+        modelo: 'Equipamento não cadastrado',
+        numserie: ''
+      };
       const st = info.status || '00';
       if (st === '01') qtdStatus01++; else qtdStatus00++;
       return {
         ...item,
         defeito: info.defeito,
-        status: st
+        status: st,
+        modelo: info.modelo,
+        numserie: info.numserie
       };
     });
 
     const comTriagemEnriquecido = dados.comTriagem.map(item => {
-      const info = detalhes[item.os] || { defeito: 'Não informado', status: '03' };
+      const info = detalhes[item.os] || {
+        defeito: 'Não informado',
+        status: '03',
+        modelo: 'Equipamento não cadastrado',
+        numserie: ''
+      };
       return {
         ...item,
         defeito: info.defeito,
-        status: info.status || '03'
+        status: info.status || '03',
+        modelo: info.modelo,
+        numserie: info.numserie
       };
     });
 

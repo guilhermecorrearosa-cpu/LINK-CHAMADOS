@@ -2,8 +2,10 @@
  * Frontend Ultra-Compacto para Celular (Mil Cópias)
  * Sem '#' na frente da OS
  * Nome do cliente completo, sem cortes
+ * Cidade em destaque chamativo
+ * Defeito chamativo em caixa de alerta âmbar
+ * Modelo do equipamento e número de série
  * Exibição de Status 00, Status 01 e filtros rápidos
- * Defeito real puxado da API do Databit
  */
 
 let dados = { semTriagem: [], comTriagem: [] };
@@ -44,29 +46,35 @@ function filtrarSubStatus(st) {
 function criarItemHTML(item, isComTriagem) {
   const atrasadoClass = item.atrasado ? 'atrasado' : '';
   const st = item.status || (isComTriagem ? '03' : '00');
+  const modelo = item.modelo || 'Equipamento não cadastrado';
+  const serie = item.numserie ? `<span class="equip-serie">(${item.numserie})</span>` : '';
   
   const rightTag = isComTriagem
     ? `<span class="tag-tecnico" style="background-color: ${item.corTecnico || '#cbd5e1'}">${item.tecnico}</span>`
     : `<span class="tag-sla ${parseInt(item.sla) < 0 ? 'sla-atraso' : 'sla-normal'}">${item.sla}h</span>`;
 
   return `
-    <div class="item-os ${atrasadoClass}" data-status="${st}" data-texto="${(item.os + ' status ' + st + ' st' + st + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
-      <!-- LINHA 1: OS + Status + Cliente Completo + Cidade + SLA/Técnico -->
+    <div class="item-os ${atrasadoClass}" data-status="${st}" data-texto="${(item.os + ' status ' + st + ' st' + st + ' ' + item.cliente + ' ' + item.cidade + ' ' + modelo + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
+      <!-- LINHA 1: OS + Status + Cidade Chamativa + SLA/Técnico -->
       <div class="linha-1">
         <div class="os-cli">
           <div class="os-topo-info">
             <span class="os-num">${item.os}</span>
             <span class="tag-status tag-status-${st}">Status ${st}</span>
-            <span class="cidade-nome">📍 ${item.cidade || ''}</span>
+            <span class="badge-cidade">📍 ${item.cidade || ''}</span>
           </div>
           <div class="cliente-nome">${item.cliente}</div>
+          <div class="linha-equip">
+            🖨️ <span class="equip-modelo">${modelo}</span>
+            ${serie}
+          </div>
         </div>
         <div class="tags-status">
           ${rightTag}
         </div>
       </div>
-      <!-- LINHA 2: O DEFEITO REAL DO DATABIT -->
-      <div class="linha-2">
+      <!-- LINHA 2: O DEFEITO CHAMATIVO DO DATABIT -->
+      <div class="caixa-defeito">
         <span class="defeito-icone">🔧</span>
         <span class="defeito-texto">${item.defeito || 'Defeito não informado'}</span>
       </div>
@@ -80,7 +88,8 @@ function renderizar() {
   const filtrarLista = (lista, aplicarSubFiltro) => {
     return lista.filter(item => {
       const st = item.status || '00';
-      const txt = (item.os + ' status ' + st + ' st' + st + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase();
+      const modelo = item.modelo || '';
+      const txt = (item.os + ' status ' + st + ' st' + st + ' ' + item.cliente + ' ' + item.cidade + ' ' + modelo + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase();
       
       const bateTexto = !termo || txt.includes(termo);
       const bateSub = !aplicarSubFiltro || !subStatusAtivo || st === subStatusAtivo;

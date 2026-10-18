@@ -1,8 +1,14 @@
 <?php
 /**
- * Mil Cópias - Painel de Chamados Ultra-Compacto para Celular
+ * Mil Cópias - Painel de Chamados para Celular
  * Integração Direta com a API Databit ERP (http://databitbh.com:54235/databitservice/)
- * Layout: 1 a 2 linhas por OS, sem corte de nome de cliente, sem '#' e com Status (00, 01, etc.)
+ * Destaques:
+ * - Sem '#' na frente da OS
+ * - Nome do cliente 100% completo, sem cortes
+ * - Cidade em badge destacada
+ * - Defeito chamativo em caixa âmbar/alerta
+ * - Modelo do equipamento e número de série incluídos
+ * - Status 00, 01, 03 exibidos com filtros rápidos
  */
 
 $api_base_url = 'http://databitbh.com:54235/databitservice/';
@@ -78,17 +84,25 @@ if ($html) {
     }
 }
 
-// 4. Buscar defeitos reais e status oficial das OS na API do Databit
+// 4. Buscar defeitos reais, modelo do equipamento e status na API do Databit
 $detalhesAPI = carregarDetalhesReaisEmLote($todasOS, $api_base_url);
 
-// 5. Vincular defeito e status a cada OS
+// 5. Vincular dados a cada OS
 $qtdStatus00 = 0;
 $qtdStatus01 = 0;
 
 foreach ($semTriagem as &$item) {
-    $info = isset($detalhesAPI[$item['os']]) ? $detalhesAPI[$item['os']] : ['defeito' => 'Não informado', 'status' => '00'];
+    $info = isset($detalhesAPI[$item['os']]) ? $detalhesAPI[$item['os']] : [
+        'defeito' => 'Não informado',
+        'status' => '00',
+        'modelo' => 'Equipamento não cadastrado',
+        'numserie' => ''
+    ];
     $item['defeito'] = $info['defeito'];
     $item['status'] = !empty($info['status']) ? $info['status'] : '00';
+    $item['modelo'] = !empty($info['modelo']) ? $info['modelo'] : 'Equipamento não cadastrado';
+    $item['numserie'] = !empty($info['numserie']) ? $info['numserie'] : '';
+
     if ($item['status'] === '01') {
         $qtdStatus01++;
     } else {
@@ -98,14 +112,21 @@ foreach ($semTriagem as &$item) {
 unset($item);
 
 foreach ($comTriagem as &$item) {
-    $info = isset($detalhesAPI[$item['os']]) ? $detalhesAPI[$item['os']] : ['defeito' => 'Não informado', 'status' => '03'];
+    $info = isset($detalhesAPI[$item['os']]) ? $detalhesAPI[$item['os']] : [
+        'defeito' => 'Não informado',
+        'status' => '03',
+        'modelo' => 'Equipamento não cadastrado',
+        'numserie' => ''
+    ];
     $item['defeito'] = $info['defeito'];
     $item['status'] = !empty($info['status']) ? $info['status'] : '03';
+    $item['modelo'] = !empty($info['modelo']) ? $info['modelo'] : 'Equipamento não cadastrado';
+    $item['numserie'] = !empty($info['numserie']) ? $info['numserie'] : '';
 }
 unset($item);
 
 /**
- * Consulta a API Databit para trazer o defeito real e o status de cada OS
+ * Consulta a API Databit para trazer defeito real, modelo do equipamento e status de cada OS
  */
 function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
     if (empty($listaOS)) return [];
@@ -123,23 +144,47 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
         ]
     ];
 
-    // 4.1 Buscar OS (motivo, observação e statusos)
+    // 4.1 Buscar OS (motivo, observação, statusos, produto e numserie)
     $opts['http']['content'] = $filtroOS;
     $resOS = @file_get_contents($baseUrl . 'OsController/listar', false, stream_context_create($opts));
     $dadosOS = [];
+    $codigosProdutos = [];
     if ($resOS) {
         $jsonOS = json_decode($resOS, true);
         $itensOS = isset($jsonOS['value']) ? $jsonOS['value'] : (is_array($jsonOS) ? $jsonOS : []);
         foreach ($itensOS as $o) {
+            $codProd = !empty($o['produto']) ? trim($o['produto']) : '';
+            if ($codProd) {
+                $codigosProdutos[] = $codProd;
+            }
             $dadosOS[$o['codigo']] = [
                 'motivo' => !empty($o['motivo']) ? trim($o['motivo']) : '',
                 'obs' => !empty($o['obs']) ? trim($o['obs']) : '',
-                'statusos' => !empty($o['statusos']) ? trim($o['statusos']) : '00'
+                'statusos' => !empty($o['statusos']) ? trim($o['statusos']) : '00',
+                'produto' => $codProd,
+                'numserie' => !empty($o['numserie']) ? trim($o['numserie']) : ''
             ];
         }
     }
 
-    // 4.2 Buscar OsDefeito (defeito específico e observação da ocorrência)
+    // 4.2 Buscar nomes dos produtos/modelos de equipamento
+    $mapaProdutos = [];
+    if (!empty($codigosProdutos)) {
+        $inProd = implode("','", array_unique($codigosProdutos));
+        $opts['http']['content'] = json_encode(['filtro' => "codigo in ('{$inProd}')"]);
+        $resProd = @file_get_contents($baseUrl . 'ProdutoController/listar', false, stream_context_create($opts));
+        if ($resProd) {
+            $jsonProd = json_decode($resProd, true);
+            $itensProd = isset($jsonProd['value']) ? $jsonProd['value'] : (is_array($jsonProd) ? $jsonProd : []);
+            foreach ($itensProd as $p) {
+                if (!empty($p['codigo']) && !empty($p['nome'])) {
+                    $mapaProdutos[$p['codigo']] = normalizarTexto(trim($p['nome']));
+                }
+            }
+        }
+    }
+
+    // 4.3 Buscar OsDefeito (defeito específico e observação da ocorrência)
     $opts['http']['content'] = $filtroDef;
     $resDef = @file_get_contents($baseUrl . 'OsDefeitoController/listar', false, stream_context_create($opts));
     $dadosDef = [];
@@ -162,7 +207,7 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
         }
     }
 
-    // 4.3 Se houver códigos numéricos de defeito (ex: 0003, 0195), traduzir via catálogo
+    // 4.4 Se houver códigos numéricos de defeito (ex: 0003, 0195), traduzir via catálogo
     $nomesCatalogo = [];
     if (!empty($codigosCatalogo)) {
         $inCat = implode("','", array_unique($codigosCatalogo));
@@ -173,23 +218,26 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
             $itensCat = isset($jsonCat['value']) ? $jsonCat['value'] : (is_array($jsonCat) ? $jsonCat : []);
             foreach ($itensCat as $c) {
                 if (!empty($c['codigo']) && !empty($c['nome'])) {
-                    $nomesCatalogo[$c['codigo']] = trim($c['nome']);
+                    $nomesCatalogo[$c['codigo']] = normalizarTexto(trim($c['nome']));
                 }
             }
         }
     }
 
-    // 4.4 Consolidação da melhor descrição de defeito e status para cada OS
+    // 4.5 Consolidação dos dados de cada OS
     foreach ($listaOS as $numOS) {
         $defeitoFinal = '';
         $statusFinal = isset($dadosOS[$numOS]['statusos']) ? $dadosOS[$numOS]['statusos'] : '00';
+        $numserieFinal = isset($dadosOS[$numOS]['numserie']) ? $dadosOS[$numOS]['numserie'] : '';
+        $codProd = isset($dadosOS[$numOS]['produto']) ? $dadosOS[$numOS]['produto'] : '';
+        $modeloFinal = isset($mapaProdutos[$codProd]) ? $mapaProdutos[$codProd] : 'Equipamento não cadastrado';
 
-        // 1ª Prioridade: Motivo direto da OS (o que o cliente reclamou)
+        // 1ª Prioridade: Motivo direto da OS
         if (!empty($dadosOS[$numOS]['motivo'])) {
             $defeitoFinal = $dadosOS[$numOS]['motivo'];
         }
 
-        // 2ª Prioridade: Se não tem motivo, verificar OsDefeitoController
+        // 2ª Prioridade: Observação do defeito ou nome do catálogo
         if (!$defeitoFinal && !empty($dadosDef[$numOS])) {
             foreach ($dadosDef[$numOS] as $dItem) {
                 if (!empty($dItem['obs']) && stripos($dItem['obs'], 'HELPDESK') === false) {
@@ -208,7 +256,6 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
             $defeitoFinal = $dadosOS[$numOS]['obs'];
         }
 
-        // Limpeza de texto e formatação
         if ($defeitoFinal) {
             $defeitoFinal = ltrim($defeitoFinal, "- \t\n\r");
             $defeitoFinal = normalizarTexto($defeitoFinal);
@@ -218,7 +265,9 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
 
         $mapaResultado[$numOS] = [
             'defeito' => $defeitoFinal,
-            'status' => $statusFinal
+            'status' => $statusFinal,
+            'modelo' => $modeloFinal,
+            'numserie' => $numserieFinal
         ];
     }
 
@@ -298,25 +347,26 @@ function normalizarTexto($str) {
     .tab-conteudo.active { display: block; }
 
     .item-os {
-      background: #fff; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px;
+      background: #fff; border-radius: 7px; padding: 9px 11px; margin-bottom: 7px;
       border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
     .item-os.atrasado {
       border-left: 4px solid #ef4444; background: #fffdfd;
     }
 
-    /* Linha 1: OS + Status + Nome Completo do Cliente + Cidade + SLA/Técnico */
+    /* Linha 1: OS + Status + Cidade Chamativa + SLA/Técnico */
     .linha-1 {
       display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
     }
     .os-cli {
-      display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;
+      display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;
     }
     .os-topo-info {
       display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
     }
     .os-num {
-      font-family: monospace; font-weight: 800; font-size: 14px; color: #0284c7;
+      font-family: monospace; font-weight: 800; font-size: 14.5px; color: #0284c7;
     }
 
     /* Badges de Status (00, 01, 03, 04) */
@@ -329,12 +379,28 @@ function normalizarTexto($str) {
     .tag-status-03 { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
     .tag-status-04 { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
 
+    /* Cidade BEM CHAMATIVA */
+    .badge-cidade {
+      font-size: 11px; font-weight: 800; color: #1e40af; background: #dbeafe;
+      padding: 2px 7px; border-radius: 4px; border: 1px solid #bfdbfe;
+      display: inline-flex; align-items: center; gap: 2px;
+    }
+
+    /* Nome do Cliente 100% Completo */
     .cliente-nome {
-      font-weight: 700; font-size: 13px; color: #0f172a; white-space: normal; word-break: break-word; line-height: 1.35;
+      font-weight: 700; font-size: 13.5px; color: #0f172a; white-space: normal;
+      word-break: break-word; line-height: 1.35; margin: 1px 0;
     }
-    .cidade-nome {
-      font-size: 11px; color: #64748b; font-weight: 600;
+
+    /* Linha do Modelo do Equipamento */
+    .linha-equip {
+      font-size: 11.5px; color: #334155; background: #f8fafc;
+      padding: 3px 7px; border-radius: 4px; border: 1px solid #e2e8f0;
+      display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;
+      margin-top: 1px;
     }
+    .equip-modelo { font-weight: 700; color: #1e293b; }
+    .equip-serie { font-family: monospace; font-size: 11px; color: #64748b; }
 
     .tags-status {
       display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0;
@@ -349,16 +415,18 @@ function normalizarTexto($str) {
     .sla-atraso { background: #fee2e2; color: #dc2626; }
     .sla-normal { background: #f1f5f9; color: #475569; }
 
-    /* Linha 2: O Defeito Real do Databit */
-    .linha-2 {
-      display: flex; align-items: flex-start; gap: 4px; font-size: 12px;
-      color: #334155; line-height: 1.3;
+    /* Caixa do DEFEITO BEM CHAMATIVO (Alerta Âmbar) */
+    .caixa-defeito {
+      background: #fffbeb; border-left: 3.5px solid #f59e0b; border-radius: 4px;
+      padding: 5px 8px; margin-top: 3px; display: flex; align-items: flex-start; gap: 6px;
+      border-top: 1px solid #fef3c7; border-right: 1px solid #fef3c7; border-bottom: 1px solid #fef3c7;
     }
     .defeito-icone {
-      color: #d97706; font-size: 11px; flex-shrink: 0; margin-top: 1px;
+      color: #d97706; font-size: 13px; flex-shrink: 0; margin-top: 1px;
     }
     .defeito-texto {
-      font-weight: 500; white-space: normal; word-break: break-word;
+      font-weight: 700; font-size: 12.5px; color: #92400e; white-space: normal;
+      word-break: break-word; line-height: 1.35;
     }
 
     .vazio { text-align: center; padding: 30px 10px; color: #94a3b8; font-size: 13px; }
@@ -391,7 +459,7 @@ function normalizarTexto($str) {
 
   <!-- Busca -->
   <div class="busca">
-    <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, status, cliente, defeito..." onkeyup="filtrar()">
+    <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, modelo, cliente, defeito, cidade..." onkeyup="filtrar()">
   </div>
 
   <!-- Lista Compacta -->
@@ -403,16 +471,22 @@ function normalizarTexto($str) {
         <div class="vazio">Nenhum chamado sem triagem.</div>
       <?php else: ?>
         <?php foreach ($semTriagem as $c): ?>
-          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} status {$c['status']} st{$c['status']} {$c['cliente']} {$c['cidade']} {$c['defeito']}") ?>">
+          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} status {$c['status']} st{$c['status']} {$c['cliente']} {$c['cidade']} {$c['modelo']} {$c['numserie']} {$c['defeito']}") ?>">
             <!-- LINHA 1 -->
             <div class="linha-1">
               <div class="os-cli">
                 <div class="os-topo-info">
                   <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
                   <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>">Status <?= htmlspecialchars($c['status']) ?></span>
-                  <span class="cidade-nome">📍 <?= htmlspecialchars($c['cidade']) ?></span>
+                  <span class="badge-cidade">📍 <?= htmlspecialchars($c['cidade']) ?></span>
                 </div>
                 <div class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
+                <div class="linha-equip">
+                  🖨️ <span class="equip-modelo"><?= htmlspecialchars($c['modelo']) ?></span>
+                  <?php if (!empty($c['numserie'])): ?>
+                    <span class="equip-serie">(<?= htmlspecialchars($c['numserie']) ?>)</span>
+                  <?php endif; ?>
+                </div>
               </div>
               <div class="tags-status">
                 <span class="tag-sla <?= (int)$c['sla'] < 0 ? 'sla-atraso' : 'sla-normal' ?>">
@@ -420,8 +494,8 @@ function normalizarTexto($str) {
                 </span>
               </div>
             </div>
-            <!-- LINHA 2 (O DEFEITO REAL DO DATABIT) -->
-            <div class="linha-2">
+            <!-- LINHA 2 (O DEFEITO CHAMATIVO DO DATABIT) -->
+            <div class="caixa-defeito">
               <span class="defeito-icone">🔧</span>
               <span class="defeito-texto"><?= htmlspecialchars($c['defeito']) ?></span>
             </div>
@@ -436,16 +510,22 @@ function normalizarTexto($str) {
         <div class="vazio">Nenhum chamado com triagem.</div>
       <?php else: ?>
         <?php foreach ($comTriagem as $c): ?>
-          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} status {$c['status']} st{$c['status']} {$c['cliente']} {$c['cidade']} {$c['tecnico']} {$c['defeito']}") ?>">
+          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} status {$c['status']} st{$c['status']} {$c['cliente']} {$c['cidade']} {$c['modelo']} {$c['numserie']} {$c['tecnico']} {$c['defeito']}") ?>">
             <!-- LINHA 1 -->
             <div class="linha-1">
               <div class="os-cli">
                 <div class="os-topo-info">
                   <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
                   <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>">Status <?= htmlspecialchars($c['status']) ?></span>
-                  <span class="cidade-nome">📍 <?= htmlspecialchars($c['cidade']) ?></span>
+                  <span class="badge-cidade">📍 <?= htmlspecialchars($c['cidade']) ?></span>
                 </div>
                 <div class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
+                <div class="linha-equip">
+                  🖨️ <span class="equip-modelo"><?= htmlspecialchars($c['modelo']) ?></span>
+                  <?php if (!empty($c['numserie'])): ?>
+                    <span class="equip-serie">(<?= htmlspecialchars($c['numserie']) ?>)</span>
+                  <?php endif; ?>
+                </div>
               </div>
               <div class="tags-status">
                 <span class="tag-tecnico" style="background-color: <?= htmlspecialchars($c['corTecnico']) ?>">
@@ -453,8 +533,8 @@ function normalizarTexto($str) {
                 </span>
               </div>
             </div>
-            <!-- LINHA 2 (O DEFEITO REAL DO DATABIT) -->
-            <div class="linha-2">
+            <!-- LINHA 2 (O DEFEITO CHAMATIVO DO DATABIT) -->
+            <div class="caixa-defeito">
               <span class="defeito-icone">🔧</span>
               <span class="defeito-texto"><?= htmlspecialchars($c['defeito']) ?></span>
             </div>
