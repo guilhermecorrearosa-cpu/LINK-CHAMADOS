@@ -1,19 +1,41 @@
 <?php
 /**
- * Mil Cópias - Painel de Chamados para Celular
+ * Mil Cópias - Painel de Chamados Ultra-Compacto para Celular
  * Integração Direta com a API Databit ERP (http://databitbh.com:54235/databitservice/)
  * Destaques:
- * - Sem '#' na frente da OS
- * - Nome do cliente 100% completo, sem cortes
- * - Cidade em badge destacada
- * - Defeito chamativo em caixa âmbar/alerta
- * - Modelo do equipamento e número de série incluídos
- * - Status 00, 01, 03 exibidos com filtros rápidos
- * - Botão "Definir Técnico" que atualiza para Status 03 no Databit ERP
+ * - Visualização super rápida de Cidade, Cliente, Modelo e Defeito
+ * - Toque na OS para expandir e acessar o botão "Definir / Transferir Técnico"
+ * - Nomes reais dos status (Sem Triagem, Aberto, Encaminhado, Em Atendimento)
+ * - Sem '#' nas OS
  */
 
 $api_base_url = 'http://databitbh.com:54235/databitservice/';
 $cham1_url = 'http://databitbh.com:51202/mc/cham1.php';
+
+function obterNomeStatus($codigo) {
+    switch (trim((string)$codigo)) {
+        case '00': return 'Sem Triagem';
+        case '01': return 'Aberto';
+        case '02': return 'Agendado';
+        case '03': return 'Encaminhado';
+        case '04': return 'Em Atendimento';
+        case '05': return 'Finalizado';
+        case '06': return 'Cancelado';
+        default: return 'Status ' . $codigo;
+    }
+}
+
+function simplificarModelo($nome) {
+    if (!$nome || $nome === 'Equipamento não cadastrado') return 'S/ Modelo';
+    return trim(preg_replace('/^(MULTIFUNCIONAL|IMPRESSORA)\s+(LASER\s+)?(MONO|COLOR)\s+/i', '', $nome));
+}
+
+function normalizarTexto($str) {
+    if (mb_check_encoding($str, 'UTF-8')) {
+        return $str;
+    }
+    return mb_convert_encoding($str, 'UTF-8', 'ISO-8859-1');
+}
 
 // AÇÃO: Atribuir Técnico e mudar status da OS para 03 via POST AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['acao'] === 'definir_tecnico') {
@@ -46,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
 
     $osObj = $listaOS[0];
     $osObj['codtec'] = $codtec;
-    $osObj['statusos'] = '03'; // Atualizar para Status 03
+    $osObj['statusos'] = '03'; // Atualizar para Status 03 (Encaminhado)
     $osObj['alteracao'] = round(microtime(true) * 1000);
     $osObj['opaltera'] = 'DATASERVICE';
 
@@ -68,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
 
     echo json_encode([
         'sucesso' => true,
-        'mensagem' => "OS {$os} atribuída com sucesso! Atualizada para o Status 03."
+        'mensagem' => "OS {$os} atribuída com sucesso! Atualizada para Status 03 (Encaminhado)."
     ]);
     exit;
 }
@@ -188,9 +210,6 @@ foreach ($comTriagem as &$item) {
 }
 unset($item);
 
-/**
- * Consulta a API Databit para trazer defeito real, modelo do equipamento e status de cada OS
- */
 function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
     if (empty($listaOS)) return [];
 
@@ -248,7 +267,7 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
         }
     }
 
-    // 4.3 Buscar OsDefeito (defeito específico e observação da ocorrência)
+    // 4.3 Buscar OsDefeito
     $opts['http']['content'] = $filtroDef;
     $resDef = @file_get_contents($baseUrl . 'OsDefeitoController/listar', false, stream_context_create($opts));
     $dadosDef = [];
@@ -271,7 +290,7 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
         }
     }
 
-    // 4.4 Se houver códigos numéricos de defeito (ex: 0003, 0195), traduzir via catálogo
+    // 4.4 Catálogo de defeitos
     $nomesCatalogo = [];
     if (!empty($codigosCatalogo)) {
         $inCat = implode("','", array_unique($codigosCatalogo));
@@ -288,7 +307,7 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
         }
     }
 
-    // 4.5 Consolidação dos dados de cada OS
+    // 4.5 Consolidação dos dados
     foreach ($listaOS as $numOS) {
         $defeitoFinal = '';
         $statusFinal = isset($dadosOS[$numOS]['statusos']) ? $dadosOS[$numOS]['statusos'] : '00';
@@ -297,12 +316,10 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
         $codtecFinal = isset($dadosOS[$numOS]['codtec']) ? $dadosOS[$numOS]['codtec'] : '0000';
         $modeloFinal = isset($mapaProdutos[$codProd]) ? $mapaProdutos[$codProd] : 'Equipamento não cadastrado';
 
-        // 1ª Prioridade: Motivo direto da OS
         if (!empty($dadosOS[$numOS]['motivo'])) {
             $defeitoFinal = $dadosOS[$numOS]['motivo'];
         }
 
-        // 2ª Prioridade: Observação do defeito ou nome do catálogo
         if (!$defeitoFinal && !empty($dadosDef[$numOS])) {
             foreach ($dadosDef[$numOS] as $dItem) {
                 if (!empty($dItem['obs']) && stripos($dItem['obs'], 'HELPDESK') === false) {
@@ -316,7 +333,6 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
             }
         }
 
-        // 3ª Prioridade: Campo de observação da OS
         if (!$defeitoFinal && !empty($dadosOS[$numOS]['obs'])) {
             $defeitoFinal = $dadosOS[$numOS]['obs'];
         }
@@ -340,14 +356,6 @@ function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
     return $mapaResultado;
 }
 
-function normalizarTexto($str) {
-    if (mb_check_encoding($str, 'UTF-8')) {
-        return $str;
-    }
-    return mb_convert_encoding($str, 'UTF-8', 'ISO-8859-1');
-}
-
-// Lista de técnicos ativos para o modal
 $listaTecnicosFixa = [
     ['codigo' => '0071', 'nome' => 'FABIANO'],
     ['codigo' => '0083', 'nome' => 'LEIDIMAR'],
@@ -377,24 +385,24 @@ $listaTecnicosFixa = [
   <title>Chamados - Mil Cópias</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
-    body { background-color: #f8fafc; color: #0f172a; font-size: 13px; line-height: 1.3; }
+    body { background-color: #f1f5f9; color: #0f172a; font-size: 13px; line-height: 1.25; min-height: 100vh; }
 
-    /* Barra Superior Fixa */
+    /* Barra Superior */
     .topo {
       position: sticky; top: 0; background: #0f172a; color: #fff;
-      padding: 9px 12px; display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;
       z-index: 100;
     }
-    .topo-titulo { font-size: 15px; font-weight: 700; }
+    .topo-titulo { font-size: 14.5px; font-weight: 700; }
     .topo-timer { font-size: 11px; color: #94a3b8; }
 
     /* Abas Principais */
     .tabs {
       display: flex; background: #fff; border-bottom: 1px solid #cbd5e1;
-      position: sticky; top: 40px; z-index: 99;
+      position: sticky; top: 37px; z-index: 99;
     }
     .tab-btn {
-      flex: 1; padding: 10px 4px; border: none; background: none; font-size: 13px; font-weight: 700;
+      flex: 1; padding: 9px 4px; border: none; background: none; font-size: 13px; font-weight: 700;
       color: #64748b; text-align: center; cursor: pointer; border-bottom: 3px solid transparent;
     }
     .tab-btn.active { color: #0284c7; border-bottom-color: #0284c7; background: #f8fafc; }
@@ -405,163 +413,144 @@ $listaTecnicosFixa = [
     .badge-laranja { background: #ea580c; color: #fff; }
     .badge-azul { background: #0284c7; color: #fff; }
 
-    /* Sub-filtros para Status 00 e Status 01 */
+    /* Sub-filtros por Nome Real do Status */
     .sub-filtros {
-      display: flex; gap: 6px; padding: 6px 10px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0;
-      align-items: center;
+      display: flex; gap: 6px; padding: 5px 8px; background: #e2e8f0; border-bottom: 1px solid #cbd5e1;
+      align-items: center; overflow-x: auto; white-space: nowrap;
     }
     .sub-btn {
-      padding: 4px 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 12px;
-      font-size: 11.5px; font-weight: 700; color: #475569; cursor: pointer;
+      padding: 4px 9px; border: 1px solid #cbd5e1; background: #fff; border-radius: 12px;
+      font-size: 11px; font-weight: 700; color: #475569; cursor: pointer; flex-shrink: 0;
     }
-    .sub-btn.active {
-      background: #0284c7; color: #fff; border-color: #0284c7;
-    }
+    .sub-btn.active { background: #0284c7; color: #fff; border-color: #0284c7; }
 
     /* Busca */
-    .busca {
-      padding: 6px 10px; background: #fff; border-bottom: 1px solid #e2e8f0;
-    }
+    .busca { padding: 5px 8px; background: #fff; border-bottom: 1px solid #e2e8f0; }
     .busca input {
-      width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
-      font-size: 13px; outline: none; background: #f8fafc;
+      width: 100%; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+      font-size: 12.5px; outline: none; background: #f8fafc;
     }
     .busca input:focus { border-color: #0284c7; background: #fff; }
 
-    /* Lista Compacta com Nome Completo do Cliente */
-    .lista { padding: 6px; }
+    /* Lista Compacta */
+    .lista { padding: 5px; max-width: 900px; margin: 0 auto; }
     .tab-conteudo { display: none; }
     .tab-conteudo.active { display: block; }
 
+    /* CARD DE OS ULTRA-RESUMIDO (CLICÁVEL PARA EXPANDIR) */
     .item-os {
-      background: #fff; border-radius: 7px; padding: 9px 11px; margin-bottom: 7px;
-      border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 4px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      background: #fff; border-radius: 6px; padding: 7px 9px; margin-bottom: 5px;
+      border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02); user-select: none; -webkit-tap-highlight-color: transparent;
     }
-    .item-os.atrasado {
-      border-left: 4px solid #ef4444; background: #fffdfd;
+    .item-os:active { background: #f8fafc; }
+    .item-os.atrasado { border-left: 4px solid #ef4444 !important; }
+    .item-os.expandido { border-color: #0284c7; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12); }
+
+    /* VISÃO RESUMIDA */
+    .card-resumo { display: flex; flex-direction: column; gap: 3px; }
+    .resumo-topo { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    .topo-esquerda { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .os-num { font-family: monospace; font-weight: 800; font-size: 13.5px; color: #0284c7; }
+
+    /* Cidade BEM CHAMATIVA */
+    .badge-cidade {
+      font-size: 10.5px; font-weight: 800; color: #1e40af; background: #dbeafe;
+      padding: 1px 6px; border-radius: 4px; border: 1px solid #bfdbfe;
+      display: inline-flex; align-items: center; gap: 2px;
     }
 
-    /* Linha 1: OS + Status + Cidade Chamativa + SLA/Técnico */
-    .linha-1 {
-      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
-    }
-    .os-cli {
-      display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;
-    }
-    .os-topo-info {
-      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-    }
-    .os-num {
-      font-family: monospace; font-weight: 800; font-size: 14.5px; color: #0284c7;
-    }
-
-    /* Badges de Status (00, 01, 03, 04) */
+    /* Badges com Nome Real do Status */
     .tag-status {
-      font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 4px;
-      letter-spacing: 0.2px; text-transform: uppercase;
+      font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 4px;
+      letter-spacing: 0.2px;
     }
-    .tag-status-00 { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+    .tag-status-00 { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
     .tag-status-01 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
     .tag-status-03 { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
     .tag-status-04 { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
 
-    /* Cidade BEM CHAMATIVA */
-    .badge-cidade {
-      font-size: 11px; font-weight: 800; color: #1e40af; background: #dbeafe;
-      padding: 2px 7px; border-radius: 4px; border: 1px solid #bfdbfe;
-      display: inline-flex; align-items: center; gap: 2px;
-    }
-
-    /* Nome do Cliente 100% Completo */
-    .cliente-nome {
-      font-weight: 700; font-size: 13.5px; color: #0f172a; white-space: normal;
-      word-break: break-word; line-height: 1.35; margin: 1px 0;
-    }
-
-    /* Linha do Modelo do Equipamento */
-    .linha-equip {
-      font-size: 11.5px; color: #334155; background: #f8fafc;
-      padding: 3px 7px; border-radius: 4px; border: 1px solid #e2e8f0;
-      display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;
-      margin-top: 1px;
-    }
-    .equip-modelo { font-weight: 700; color: #1e293b; }
-    .equip-serie { font-family: monospace; font-size: 11px; color: #64748b; }
-
-    .tags-status {
-      display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0;
-    }
-    .tag-tecnico {
-      font-size: 10.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px;
-      text-transform: uppercase; color: #0f172a;
-    }
-    .tag-sla {
-      font-size: 10.5px; font-weight: 700; padding: 2px 5px; border-radius: 3px;
-    }
+    .topo-direita { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .tag-sla { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
     .sla-atraso { background: #fee2e2; color: #dc2626; }
     .sla-normal { background: #f1f5f9; color: #475569; }
+    .tag-tecnico {
+      font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 4px;
+      text-transform: uppercase; color: #0f172a;
+    }
+    .icone-expandir { font-size: 9px; color: #94a3b8; transition: transform 0.2s ease; margin-left: 2px; }
+    .item-os.expandido .icone-expandir { transform: rotate(180deg); color: #0284c7; }
 
-    /* Caixa do DEFEITO BEM CHAMATIVO (Alerta Âmbar) */
-    .caixa-defeito {
-      background: #fffbeb; border-left: 3.5px solid #f59e0b; border-radius: 4px;
-      padding: 5px 8px; margin-top: 3px; display: flex; align-items: flex-start; gap: 6px;
-      border-top: 1px solid #fef3c7; border-right: 1px solid #fef3c7; border-bottom: 1px solid #fef3c7;
-    }
-    .defeito-icone {
-      color: #d97706; font-size: 13px; flex-shrink: 0; margin-top: 1px;
-    }
-    .defeito-texto {
-      font-weight: 700; font-size: 12.5px; color: #92400e; white-space: normal;
-      word-break: break-word; line-height: 1.35;
+    /* Linha 2: Cliente + Modelo Compacto */
+    .cliente-linha { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; line-height: 1.3; }
+    .cliente-nome { font-weight: 700; font-size: 12.5px; color: #0f172a; }
+    .separador-dot { color: #94a3b8; font-size: 11px; }
+    .modelo-compacto {
+      font-size: 11px; font-weight: 700; color: #0369a1; background: #f0f9ff;
+      padding: 1px 5px; border-radius: 3px; border: 1px solid #e0f2fe;
     }
 
-    /* Linha de Ação para Definir Técnico */
-    .linha-acoes {
-      display: flex; justify-content: flex-end; margin-top: 4px; padding-top: 4px;
-      border-top: 1px dashed #e2e8f0;
+    /* Linha 3: O Defeito Chamativo e Direto */
+    .resumo-defeito {
+      background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 3px;
+      padding: 3px 6px; display: flex; align-items: flex-start; gap: 4px; margin-top: 1px;
     }
+    .defeito-icone { color: #d97706; font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+    .defeito-texto { font-weight: 700; font-size: 11.5px; color: #92400e; line-height: 1.3; word-break: break-word; }
+
+    /* DETALHES EXPANSÍVEIS (MOSTRADOS AO TOCAR NA OS) */
+    .card-detalhes {
+      margin-top: 7px; padding-top: 7px; border-top: 1px dashed #cbd5e1;
+      display: flex; flex-direction: column; gap: 6px; animation: fadeInDet 0.2s ease-out;
+    }
+    @keyframes fadeInDet {
+      from { opacity: 0; transform: translateY(-3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .detalhes-grid {
+      font-size: 11.5px; color: #334155; background: #f8fafc; padding: 6px 8px;
+      border-radius: 5px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 3px;
+    }
+    .equip-serie { font-family: monospace; font-weight: 700; color: #475569; }
+    .linha-acoes-expandida { display: flex; justify-content: flex-end; padding-top: 2px; }
     .btn-definir-tecnico {
-      background: #0284c7; color: #fff; border: none; border-radius: 5px;
-      font-weight: 700; font-size: 11.5px; padding: 5px 12px; cursor: pointer;
-      display: inline-flex; align-items: center; gap: 5px;
+      width: 100%; background: #0284c7; color: #fff; border: none; border-radius: 6px;
+      font-weight: 700; font-size: 12.5px; padding: 8px 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      box-shadow: 0 1px 3px rgba(2, 132, 199, 0.25);
     }
-    .btn-definir-tecnico:active { transform: scale(0.98); }
+    .btn-definir-tecnico:active { background: #0369a1; transform: scale(0.99); }
 
     /* MODAL */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);
+      background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(2px);
       z-index: 200; display: flex; align-items: flex-end; justify-content: center;
     }
-    @media (min-width: 600px) {
-      .modal-overlay { align-items: center; padding: 20px; }
-    }
+    @media (min-width: 600px) { .modal-overlay { align-items: center; padding: 20px; } }
     .modal-card {
       background: #fff; width: 100%; max-width: 500px; border-radius: 14px 14px 0 0;
       padding: 16px; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 12px;
     }
-    @media (min-width: 600px) {
-      .modal-card { border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); }
-    }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
-    .modal-header h3 { font-size: 16px; font-weight: 800; color: #0f172a; }
+    @media (min-width: 600px) { .modal-card { border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); } }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+    .modal-header h3 { font-size: 15px; font-weight: 800; color: #0f172a; }
     .modal-fechar { background: none; border: none; font-size: 18px; font-weight: bold; color: #64748b; cursor: pointer; }
-    .modal-os-info { background: #f8fafc; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
-    .destaque-os { font-family: monospace; font-weight: 800; color: #0284c7; font-size: 15px; }
-    .modal-aviso { font-size: 12px; color: #0369a1; background: #e0f2fe; padding: 8px 10px; border-radius: 6px; border-left: 3px solid #0284c7; line-height: 1.4; }
-    .modal-campo { display: flex; flex-direction: column; gap: 6px; }
-    .modal-campo label { font-weight: 700; font-size: 13px; color: #334155; }
-    .select-tecnico { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 600; color: #0f172a; outline: none; background: #fff; }
-    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid #e2e8f0; }
-    .btn-cancelar { flex: 1; padding: 11px; border: 1px solid #cbd5e1; background: #f1f5f9; color: #475569; border-radius: 7px; font-weight: 700; font-size: 13px; cursor: pointer; }
-    .btn-confirmar { flex: 2; padding: 11px; border: none; background: #0284c7; color: #fff; border-radius: 7px; font-weight: 800; font-size: 13.5px; cursor: pointer; }
+    .modal-os-info { background: #f8fafc; padding: 9px 11px; border-radius: 7px; border: 1px solid #e2e8f0; font-size: 12.5px; display: flex; flex-direction: column; gap: 3px; }
+    .destaque-os { font-family: monospace; font-weight: 800; color: #0284c7; font-size: 14.5px; }
+    .modal-aviso { font-size: 11.5px; color: #0369a1; background: #e0f2fe; padding: 7px 9px; border-radius: 6px; border-left: 3px solid #0284c7; line-height: 1.35; }
+    .modal-campo { display: flex; flex-direction: column; gap: 5px; }
+    .modal-campo label { font-weight: 700; font-size: 12.5px; color: #334155; }
+    .select-tecnico { width: 100%; padding: 9px 11px; border: 1.5px solid #cbd5e1; border-radius: 7px; font-size: 13.5px; font-weight: 600; color: #0f172a; outline: none; background: #fff; }
+    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+    .btn-cancelar { flex: 1; padding: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; color: #475569; border-radius: 6px; font-weight: 700; font-size: 12.5px; cursor: pointer; }
+    .btn-confirmar { flex: 2; padding: 10px; border: none; background: #0284c7; color: #fff; border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer; }
 
     /* Toast */
     .toast-aviso {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 20px;
-      font-size: 13px; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 300;
+      background: #0f172a; color: #fff; padding: 9px 15px; border-radius: 20px;
+      font-size: 12.5px; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 300;
       max-width: 90%; text-align: center;
     }
 
@@ -586,11 +575,11 @@ $listaTecnicosFixa = [
     </button>
   </div>
 
-  <!-- Sub-filtros para Status 00 e Status 01 (visível na aba Sem Triagem) -->
+  <!-- Sub-filtros por Nomes Reais de Status -->
   <div class="sub-filtros" id="subFiltrosBar">
     <button class="sub-btn active" id="btnSubTodas" onclick="filtrarSubStatus('')">Todas (<?= count($semTriagem) ?>)</button>
-    <button class="sub-btn" id="btnSub00" onclick="filtrarSubStatus('00')">Status 00 (<?= $qtdStatus00 ?>)</button>
-    <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Status 01 (<?= $qtdStatus01 ?>)</button>
+    <button class="sub-btn" id="btnSub00" onclick="filtrarSubStatus('00')">Sem Triagem (<?= $qtdStatus00 ?>)</button>
+    <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Aberto (<?= $qtdStatus01 ?>)</button>
   </div>
 
   <!-- Busca -->
@@ -601,45 +590,56 @@ $listaTecnicosFixa = [
   <!-- Lista Compacta -->
   <div class="lista">
 
-    <!-- Aba 1: Sem Triagem (Status 00 e 01) -->
+    <!-- Aba 1: Sem Triagem -->
     <div id="aba-sem-triagem" class="tab-conteudo active">
       <?php if (empty($semTriagem)): ?>
         <div class="vazio">Nenhum chamado sem triagem.</div>
       <?php else: ?>
         <?php foreach ($semTriagem as $c): ?>
-          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} status {$c['status']} st{$c['status']} {$c['cliente']} {$c['cidade']} {$c['modelo']} {$c['numserie']} {$c['defeito']}") ?>">
-            <!-- LINHA 1 -->
-            <div class="linha-1">
-              <div class="os-cli">
-                <div class="os-topo-info">
+          <?php $nomeSt = obterNomeStatus($c['status']); $modLimpo = simplificarModelo($c['modelo']); ?>
+          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['modelo']} {$c['numserie']} {$c['defeito']}") ?>">
+            <!-- 1. RESUMO COMPACTO -->
+            <div class="card-resumo">
+              <div class="resumo-topo">
+                <div class="topo-esquerda">
                   <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
-                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>">Status <?= htmlspecialchars($c['status']) ?></span>
                   <span class="badge-cidade">📍 <?= htmlspecialchars($c['cidade']) ?></span>
+                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
                 </div>
-                <div class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
-                <div class="linha-equip">
-                  🖨️ <span class="equip-modelo"><?= htmlspecialchars($c['modelo']) ?></span>
-                  <?php if (!empty($c['numserie'])): ?>
-                    <span class="equip-serie">(<?= htmlspecialchars($c['numserie']) ?>)</span>
-                  <?php endif; ?>
+                <div class="topo-direita">
+                  <span class="tag-sla <?= (int)$c['sla'] < 0 ? 'sla-atraso' : 'sla-normal' ?>"><?= $c['sla'] ?>h</span>
+                  <span class="icone-expandir">▼</span>
                 </div>
               </div>
-              <div class="tags-status">
-                <span class="tag-sla <?= (int)$c['sla'] < 0 ? 'sla-atraso' : 'sla-normal' ?>">
-                  <?= $c['sla'] ?>h
-                </span>
+
+              <div class="cliente-linha">
+                <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
+                <span class="separador-dot">•</span>
+                <span class="modelo-compacto">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
+              </div>
+
+              <div class="resumo-defeito">
+                <span class="defeito-icone">🔧</span>
+                <span class="defeito-texto"><?= htmlspecialchars($c['defeito']) ?></span>
               </div>
             </div>
-            <!-- LINHA 2 (O DEFEITO CHAMATIVO DO DATABIT) -->
-            <div class="caixa-defeito">
-              <span class="defeito-icone">🔧</span>
-              <span class="defeito-texto"><?= htmlspecialchars($c['defeito']) ?></span>
-            </div>
-            <!-- LINHA 3 (AÇÃO DEFINIR TÉCNICO) -->
-            <div class="linha-acoes">
-              <button class="btn-definir-tecnico" onclick="abrirModalTecnico('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
-                👤 Definir Técnico
-              </button>
+
+            <!-- 2. DETALHES EXPANSÍVEIS (AO TOCAR NA OS) -->
+            <div class="card-detalhes" id="detalhes-<?= htmlspecialchars($c['os']) ?>" style="display: none;">
+              <div class="detalhes-grid">
+                <div><strong>Modelo Completo:</strong> <?= htmlspecialchars($c['modelo']) ?></div>
+                <?php if (!empty($c['numserie'])): ?>
+                  <div><strong>Nº de Série:</strong> <span class="equip-serie"><?= htmlspecialchars($c['numserie']) ?></span></div>
+                <?php endif; ?>
+                <?php if (!empty($c['local'])): ?>
+                  <div><strong>Local/Setor:</strong> <?= htmlspecialchars($c['local']) ?></div>
+                <?php endif; ?>
+              </div>
+              <div class="linha-acoes-expandida">
+                <button class="btn-definir-tecnico" onclick="event.stopPropagation(); abrirModalTecnico('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
+                  👤 Definir / Transferir Técnico
+                </button>
+              </div>
             </div>
           </div>
         <?php endforeach; ?>
@@ -652,39 +652,55 @@ $listaTecnicosFixa = [
         <div class="vazio">Nenhum chamado com triagem.</div>
       <?php else: ?>
         <?php foreach ($comTriagem as $c): ?>
-          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} status {$c['status']} st{$c['status']} {$c['cliente']} {$c['cidade']} {$c['modelo']} {$c['numserie']} {$c['tecnico']} {$c['defeito']}") ?>">
-            <!-- LINHA 1 -->
-            <div class="linha-1">
-              <div class="os-cli">
-                <div class="os-topo-info">
+          <?php $nomeSt = obterNomeStatus($c['status']); $modLimpo = simplificarModelo($c['modelo']); ?>
+          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['modelo']} {$c['numserie']} {$c['tecnico']} {$c['defeito']}") ?>">
+            <!-- 1. RESUMO COMPACTO -->
+            <div class="card-resumo">
+              <div class="resumo-topo">
+                <div class="topo-esquerda">
                   <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
-                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>">Status <?= htmlspecialchars($c['status']) ?></span>
                   <span class="badge-cidade">📍 <?= htmlspecialchars($c['cidade']) ?></span>
+                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
                 </div>
-                <div class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
-                <div class="linha-equip">
-                  🖨️ <span class="equip-modelo"><?= htmlspecialchars($c['modelo']) ?></span>
-                  <?php if (!empty($c['numserie'])): ?>
-                    <span class="equip-serie">(<?= htmlspecialchars($c['numserie']) ?>)</span>
-                  <?php endif; ?>
+                <div class="topo-direita">
+                  <span class="tag-tecnico" style="background-color: <?= htmlspecialchars($c['corTecnico']) ?>">
+                    <?= htmlspecialchars($c['tecnico']) ?>
+                  </span>
+                  <span class="icone-expandir">▼</span>
                 </div>
               </div>
-              <div class="tags-status">
-                <span class="tag-tecnico" style="background-color: <?= htmlspecialchars($c['corTecnico']) ?>">
-                  <?= htmlspecialchars($c['tecnico']) ?>
-                </span>
+
+              <div class="cliente-linha">
+                <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
+                <span class="separador-dot">•</span>
+                <span class="modelo-compacto">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
+              </div>
+
+              <div class="resumo-defeito">
+                <span class="defeito-icone">🔧</span>
+                <span class="defeito-texto"><?= htmlspecialchars($c['defeito']) ?></span>
               </div>
             </div>
-            <!-- LINHA 2 (O DEFEITO CHAMATIVO DO DATABIT) -->
-            <div class="caixa-defeito">
-              <span class="defeito-icone">🔧</span>
-              <span class="defeito-texto"><?= htmlspecialchars($c['defeito']) ?></span>
-            </div>
-            <!-- LINHA 3 (AÇÃO REATRIBUIR TÉCNICO) -->
-            <div class="linha-acoes">
-              <button class="btn-definir-tecnico" onclick="abrirModalTecnico('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
-                👤 Alterar Técnico
-              </button>
+
+            <!-- 2. DETALHES EXPANSÍVEIS (AO TOCAR NA OS) -->
+            <div class="card-detalhes" id="detalhes-<?= htmlspecialchars($c['os']) ?>" style="display: none;">
+              <div class="detalhes-grid">
+                <div><strong>Modelo Completo:</strong> <?= htmlspecialchars($c['modelo']) ?></div>
+                <?php if (!empty($c['numserie'])): ?>
+                  <div><strong>Nº de Série:</strong> <span class="equip-serie"><?= htmlspecialchars($c['numserie']) ?></span></div>
+                <?php endif; ?>
+                <?php if (!empty($c['local'])): ?>
+                  <div><strong>Local/Setor:</strong> <?= htmlspecialchars($c['local']) ?></div>
+                <?php endif; ?>
+                <?php if (!empty($c['tecnico']) && $c['tecnico'] !== 'A Definir'): ?>
+                  <div><strong>Técnico Atual:</strong> <?= htmlspecialchars($c['tecnico']) ?></div>
+                <?php endif; ?>
+              </div>
+              <div class="linha-acoes-expandida">
+                <button class="btn-definir-tecnico" onclick="event.stopPropagation(); abrirModalTecnico('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
+                  👤 Alterar Técnico
+                </button>
+              </div>
             </div>
           </div>
         <?php endforeach; ?>
@@ -706,7 +722,7 @@ $listaTecnicosFixa = [
           <div><strong>Cliente:</strong> <span id="modalCliente"></span></div>
         </div>
         <p class="modal-aviso">
-          ⚡ Ao definir o técnico, a OS será atualizada no Databit para o <strong>Status 03</strong> e aparecerá diretamente no sistema do técnico.
+          ⚡ Ao definir o técnico, a OS será atualizada no Databit para o <strong>Status 03 (Encaminhado)</strong> e aparecerá diretamente no sistema do técnico.
         </p>
         <div class="modal-campo">
           <label for="selectTecnico">Selecione o Técnico:</label>
@@ -731,6 +747,7 @@ $listaTecnicosFixa = [
   <script>
     let subStatusAtivo = '';
     let osSelecionadaModal = null;
+    let osExpandidas = new Set();
 
     function trocarAba(aba) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -762,6 +779,25 @@ $listaTecnicosFixa = [
       filtrar();
     }
 
+    function toggleExpandirOS(os, event) {
+      if (event && event.target && event.target.closest('.btn-definir-tecnico')) {
+        return;
+      }
+      const elCard = document.getElementById('card-' + os);
+      const elDet = document.getElementById('detalhes-' + os);
+      if (!elCard || !elDet) return;
+
+      if (osExpandidas.has(os)) {
+        osExpandidas.delete(os);
+        elCard.classList.remove('expandido');
+        elDet.style.display = 'none';
+      } else {
+        osExpandidas.add(os);
+        elCard.classList.add('expandido');
+        elDet.style.display = 'flex';
+      }
+    }
+
     function filtrar() {
       const termo = document.getElementById('campoBusca').value.toLowerCase().trim();
       document.querySelectorAll('.item-os').forEach(el => {
@@ -771,7 +807,7 @@ $listaTecnicosFixa = [
         let bateTexto = !termo || texto.includes(termo);
         let bateSub = !subStatusAtivo || st === subStatusAtivo;
 
-        el.style.display = (bateTexto && bateSub) ? 'flex' : 'none';
+        el.style.display = (bateTexto && bateSub) ? 'block' : 'none';
       });
     }
 
@@ -831,7 +867,7 @@ $listaTecnicosFixa = [
         if (json.sucesso) {
           mostrarToast(`✅ OS ${osSelecionadaModal} atribuída com sucesso! Atualizada para Status 03.`);
           fecharModalTecnico();
-          setTimeout(() => { window.location.reload(); }, 1500);
+          setTimeout(() => { window.location.reload(); }, 1200);
         } else {
           alert('Erro ao atribuir técnico: ' + (json.erro || 'Falha'));
           btn.disabled = false;

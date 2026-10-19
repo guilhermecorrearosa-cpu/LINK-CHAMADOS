@@ -1,12 +1,9 @@
 /**
- * Frontend Ultra-Compacto para Celular (Mil Cópias)
- * Sem '#' na frente da OS
- * Nome do cliente completo, sem cortes
- * Cidade em destaque chamativo
- * Defeito chamativo em caixa de alerta âmbar
- * Modelo do equipamento e número de série
- * Exibição de Status 00, Status 01 e filtros rápidos
- * Ação para Definir Técnico e alterar para Status 03
+ * Frontend Ultra-Compacto e Resumido para Celular (Mil Cópias)
+ * - Visualização super rápida de Cidade, Cliente, Modelo e Defeito
+ * - Toque na OS para expandir e acessar o botão "Definir / Transferir Técnico"
+ * - Nomes reais dos status (Sem Triagem, Aberto, Encaminhado, Em Atendimento)
+ * - Sem '#' nas OS
  */
 
 let dados = { semTriagem: [], comTriagem: [] };
@@ -14,6 +11,41 @@ let listaTecnicos = [];
 let abaAtiva = 'sem-triagem';
 let subStatusAtivo = '';
 let osSelecionadaModal = null;
+let osExpandidas = new Set();
+
+function obterNomeStatus(codigo) {
+  switch (String(codigo).trim()) {
+    case '00': return 'Sem Triagem';
+    case '01': return 'Aberto';
+    case '02': return 'Agendado';
+    case '03': return 'Encaminhado';
+    case '04': return 'Em Atendimento';
+    case '05': return 'Finalizado';
+    case '06': return 'Cancelado';
+    default: return 'Status ' + codigo;
+  }
+}
+
+function simplificarModelo(nome) {
+  if (!nome || nome === 'Equipamento não cadastrado') return 'S/ Modelo';
+  return nome
+    .replace(/^(MULTIFUNCIONAL|IMPRESSORA)\s+(LASER\s+)?(MONO|COLOR)\s+/i, '')
+    .trim();
+}
+
+function escapeHtml(str) {
+  return (str || '').replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[tag] || tag));
+}
+
+function escapeJsParam(str) {
+  return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
 
 function trocarAba(aba) {
   abaAtiva = aba;
@@ -46,60 +78,82 @@ function filtrarSubStatus(st) {
   renderizar();
 }
 
-function escapeHtml(str) {
-  return (str || '').replace(/[&<>'"]/g, tag => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    "'": '&#39;',
-    '"': '&quot;'
-  }[tag] || tag));
-}
+function toggleExpandirOS(os, event) {
+  // Se clicou no botão interno de definir técnico, não toggleia
+  if (event && event.target && event.target.closest('.btn-definir-tecnico')) {
+    return;
+  }
 
-function escapeJsParam(str) {
-  return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  const elCard = document.getElementById(`card-${os}`);
+  const elDet = document.getElementById(`detalhes-${os}`);
+  if (!elCard || !elDet) return;
+
+  if (osExpandidas.has(os)) {
+    osExpandidas.delete(os);
+    elCard.classList.remove('expandido');
+    elDet.style.display = 'none';
+  } else {
+    osExpandidas.add(os);
+    elCard.classList.add('expandido');
+    elDet.style.display = 'flex';
+  }
 }
 
 function criarItemHTML(item, isComTriagem) {
   const atrasadoClass = item.atrasado ? 'atrasado' : '';
   const st = item.status || (isComTriagem ? '03' : '00');
-  const modelo = item.modelo || 'Equipamento não cadastrado';
-  const serie = item.numserie ? `<span class="equip-serie">(${escapeHtml(item.numserie)})</span>` : '';
-  
+  const nomeStatus = obterNomeStatus(st);
+  const modeloLimpo = simplificarModelo(item.modelo);
+  const isExpandido = osExpandidas.has(item.os);
+
   const rightTag = isComTriagem
     ? `<span class="tag-tecnico" style="background-color: ${item.corTecnico || '#cbd5e1'}">${escapeHtml(item.tecnico)}</span>`
     : `<span class="tag-sla ${parseInt(item.sla) < 0 ? 'sla-atraso' : 'sla-normal'}">${item.sla}h</span>`;
 
   return `
-    <div class="item-os ${atrasadoClass}" data-status="${st}" data-texto="${(item.os + ' status ' + st + ' st' + st + ' ' + item.cliente + ' ' + item.cidade + ' ' + modelo + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
-      <!-- LINHA 1: OS + Status + Cidade Chamativa + SLA/Técnico -->
-      <div class="linha-1">
-        <div class="os-cli">
-          <div class="os-topo-info">
+    <div class="item-os ${atrasadoClass} ${isExpandido ? 'expandido' : ''}" id="card-${item.os}" onclick="toggleExpandirOS('${item.os}', event)" data-status="${st}" data-texto="${(item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
+      <!-- 1. RESUMO COMPACTO (SEMPRE VISÍVEL) -->
+      <div class="card-resumo">
+        <!-- LINHA 1: OS + CIDADE CHAMATIVA + STATUS REAL + SLA -->
+        <div class="resumo-topo">
+          <div class="topo-esquerda">
             <span class="os-num">${escapeHtml(item.os)}</span>
-            <span class="tag-status tag-status-${st}">Status ${st}</span>
             <span class="badge-cidade">📍 ${escapeHtml(item.cidade || '')}</span>
+            <span class="tag-status tag-status-${st}">${escapeHtml(nomeStatus)}</span>
           </div>
-          <div class="cliente-nome">${escapeHtml(item.cliente)}</div>
-          <div class="linha-equip">
-            🖨️ <span class="equip-modelo">${escapeHtml(modelo)}</span>
-            ${serie}
+          <div class="topo-direita">
+            ${rightTag}
+            <span class="icone-expandir">▼</span>
           </div>
         </div>
-        <div class="tags-status">
-          ${rightTag}
+
+        <!-- LINHA 2: CLIENTE + MODELO RESUMIDO -->
+        <div class="cliente-linha">
+          <span class="cliente-nome">${escapeHtml(item.cliente)}</span>
+          <span class="separador-dot">•</span>
+          <span class="modelo-compacto">🖨️ ${escapeHtml(modeloLimpo)}</span>
+        </div>
+
+        <!-- LINHA 3: DEFEITO DIRETO E DESTACADO -->
+        <div class="resumo-defeito">
+          <span class="defeito-icone">🔧</span>
+          <span class="defeito-texto">${escapeHtml(item.defeito || 'Defeito não informado')}</span>
         </div>
       </div>
-      <!-- LINHA 2: O DEFEITO CHAMATIVO DO DATABIT -->
-      <div class="caixa-defeito">
-        <span class="defeito-icone">🔧</span>
-        <span class="defeito-texto">${escapeHtml(item.defeito || 'Defeito não informado')}</span>
-      </div>
-      <!-- LINHA 3: AÇÃO DEFINIR TÉCNICO (STATUS 03) -->
-      <div class="linha-acoes">
-        <button class="btn-definir-tecnico" onclick="abrirModalTecnico('${item.os}', '${escapeJsParam(item.cliente)}', '${item.codtec || ''}')">
-          👤 Definir Técnico
-        </button>
+
+      <!-- 2. DETALHES EXPANSÍVEIS (MOSTRADOS AO TOCAR NA OS) -->
+      <div class="card-detalhes" id="detalhes-${item.os}" style="display: ${isExpandido ? 'flex' : 'none'};">
+        <div class="detalhes-grid">
+          <div><strong>Modelo Completo:</strong> ${escapeHtml(item.modelo || 'Não cadastrado')}</div>
+          ${item.numserie ? `<div><strong>Nº de Série:</strong> <span class="equip-serie">${escapeHtml(item.numserie)}</span></div>` : ''}
+          ${item.local ? `<div><strong>Local/Setor:</strong> ${escapeHtml(item.local)}</div>` : ''}
+          ${isComTriagem && item.tecnico && item.tecnico !== 'A Definir' ? `<div><strong>Técnico Atual:</strong> ${escapeHtml(item.tecnico)}</div>` : ''}
+        </div>
+        <div class="linha-acoes-expandida">
+          <button class="btn-definir-tecnico" onclick="event.stopPropagation(); abrirModalTecnico('${item.os}', '${escapeJsParam(item.cliente)}', '${item.codtec || ''}')">
+            👤 ${isComTriagem ? 'Alterar Técnico' : 'Definir / Transferir Técnico'}
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -111,8 +165,8 @@ function renderizar() {
   const filtrarLista = (lista, aplicarSubFiltro) => {
     return lista.filter(item => {
       const st = item.status || '00';
-      const modelo = item.modelo || '';
-      const txt = (item.os + ' status ' + st + ' st' + st + ' ' + item.cliente + ' ' + item.cidade + ' ' + modelo + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase();
+      const nomeStatus = obterNomeStatus(st);
+      const txt = (item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase();
       
       const bateTexto = !termo || txt.includes(termo);
       const bateSub = !aplicarSubFiltro || !subStatusAtivo || st === subStatusAtivo;

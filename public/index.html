@@ -24,11 +24,11 @@
     </button>
   </div>
 
-  <!-- Sub-filtros para Status 00 e Status 01 -->
+  <!-- Sub-filtros com Nomes Reais dos Status -->
   <div class="sub-filtros" id="subFiltrosBar">
     <button class="sub-btn active" id="btnSubTodas" onclick="filtrarSubStatus('')">Todas (<span id="countSubTodas">0</span>)</button>
-    <button class="sub-btn" id="btnSub00" onclick="filtrarSubStatus('00')">Status 00 (<span id="countSub00">0</span>)</button>
-    <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Status 01 (<span id="countSub01">0</span>)</button>
+    <button class="sub-btn" id="btnSub00" onclick="filtrarSubStatus('00')">Sem Triagem (<span id="countSub00">0</span>)</button>
+    <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Aberto (<span id="countSub01">0</span>)</button>
   </div>
 
   <!-- Busca -->
@@ -59,7 +59,7 @@
           <div><strong>Cliente:</strong> <span id="modalCliente"></span></div>
         </div>
         <p class="modal-aviso">
-          ⚡ Ao definir o técnico, a OS será atualizada no Databit para o <strong>Status 03</strong> e aparecerá diretamente no sistema do técnico.
+          ⚡ Ao definir o técnico, a OS será atualizada no Databit para o <strong>Status 03 (Encaminhado)</strong> e aparecerá diretamente no sistema do técnico.
         </p>
         <div class="modal-campo">
           <label for="selectTecnico">Selecione o Técnico:</label>
