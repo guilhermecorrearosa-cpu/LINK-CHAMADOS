@@ -390,6 +390,17 @@ $listaTecnicosFixa = [
   <meta http-equiv="Expires" content="0">
   <meta http-equiv="refresh" content="60">
   <title>Chamados - Mil Cópias</title>
+
+  <!-- PWA & Ícones Oficiais para iPhone (iOS) e Android -->
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=20261019_03">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=20261019_03">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=20261019_03">
+  <link rel="manifest" href="manifest.json?v=20261019_03">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mil Cópias">
+  <meta name="theme-color" content="#0f172a">
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
     body { background-color: #f1f5f9; color: #0f172a; font-size: 13px; line-height: 1.25; min-height: 100vh; }
@@ -400,7 +411,16 @@ $listaTecnicosFixa = [
       padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;
       z-index: 100;
     }
+    .topo-esq { display: flex; align-items: center; gap: 8px; }
+    .topo-logo { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
     .topo-titulo { font-size: 14.5px; font-weight: 700; }
+    .topo-dir { display: flex; align-items: center; gap: 10px; }
+    .btn-notificacao {
+      background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff; border-radius: 16px; padding: 3px 8px; font-size: 13px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .btn-notificacao.ativo { background: #0284c7; border-color: #38bdf8; }
     .topo-timer { font-size: 11px; color: #94a3b8; }
 
     /* Abas Principais */
@@ -568,8 +588,16 @@ $listaTecnicosFixa = [
 
   <!-- Topo -->
   <div class="topo">
-    <span class="topo-titulo">🖨️ Mil Cópias</span>
-    <span class="topo-timer"><span id="contador">60</span>s</span>
+    <div class="topo-esq">
+      <img src="favicon.png" alt="Logo" class="topo-logo">
+      <span class="topo-titulo">Mil Cópias</span>
+    </div>
+    <div class="topo-dir">
+      <button id="btnNotificacao" class="btn-notificacao" onclick="solicitarPermissaoNotificacao()" title="Ativar Notificações no Celular">
+        <span id="iconeSino">🔔</span>
+      </button>
+      <span class="topo-timer"><span id="contador">60</span>s</span>
+    </div>
   </div>
 
   <!-- Abas -->
@@ -896,6 +924,104 @@ $listaTecnicosFixa = [
       t.style.display = 'block';
       setTimeout(() => { t.style.display = 'none'; }, duracao);
     }
+
+    function atualizarBadgeApp(qtd) {
+      if ('setAppBadge' in navigator) {
+        if (qtd > 0) {
+          navigator.setAppBadge(qtd).catch(() => {});
+        } else {
+          navigator.clearAppBadge().catch(() => {});
+        }
+      }
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SET_BADGE', count: qtd });
+      }
+      document.title = qtd > 0 ? '(' + qtd + ') Mil Cópias' : 'Mil Cópias';
+    }
+
+    function emitirSomAlerta() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } catch (e) {}
+    }
+
+    async function solicitarPermissaoNotificacao() {
+      if (!('Notification' in window)) {
+        alert('Notificações não são suportadas neste navegador.');
+        return;
+      }
+      try {
+        const perm = await Notification.requestPermission();
+        atualizarBotaoNotificacao(perm);
+        if (perm === 'granted') {
+          mostrarToast('🔔 Notificações ativadas no celular!');
+          emitirSomAlerta();
+          atualizarBadgeApp(<?= count($semTriagem) ?>);
+        } else if (perm === 'denied') {
+          alert('Para receber alertas no celular, permita as notificações nas configurações do Safari/navegador.');
+        }
+      } catch (e) {}
+    }
+
+    function atualizarBotaoNotificacao(perm) {
+      const btn = document.getElementById('btnNotificacao');
+      const icone = document.getElementById('iconeSino');
+      if (!btn || !icone) return;
+      const status = perm || (window.Notification ? Notification.permission : 'default');
+      if (status === 'granted') {
+        btn.classList.add('ativo');
+        icone.textContent = '🔔';
+      } else {
+        btn.classList.remove('ativo');
+        icone.textContent = '🔕';
+      }
+    }
+
+    // Verificar se surgiram novas OS em relação à última visita
+    (function verificarNovasOS() {
+      const osAtuais = <?= json_encode(array_column($semTriagem, 'os')) ?>;
+      const salvas = localStorage.getItem('milcopias_os_conhecidas');
+      if (salvas) {
+        try {
+          const listaAntiga = JSON.parse(salvas);
+          const novas = osAtuais.filter(x => !listaAntiga.includes(x));
+          if (novas.length > 0) {
+            emitirSomAlerta();
+            const msg = novas.length === 1 ? '🚨 Nova OS: ' + novas[0] : '🚨 ' + novas.length + ' Novas OS Recebidas!';
+            mostrarToast('🔔 ' + msg, 6000);
+            if (window.Notification && Notification.permission === 'granted') {
+              new Notification(msg, {
+                body: 'Você possui ' + novas.length + ' novo(s) chamado(s) sem triagem.',
+                icon: 'apple-touch-icon.png'
+              });
+            }
+          }
+        } catch (e) {}
+      }
+      localStorage.setItem('milcopias_os_conhecidas', JSON.stringify(osAtuais));
+    })();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js?v=20261019_03')
+        .then(reg => console.log('SW ativo:', reg.scope))
+        .catch(err => console.warn('SW:', err));
+    }
+
+    atualizarBadgeApp(<?= count($semTriagem) ?>);
+    atualizarBotaoNotificacao();
 
     let t = 60;
     setInterval(() => {

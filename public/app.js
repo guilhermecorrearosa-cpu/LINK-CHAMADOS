@@ -224,13 +224,161 @@ function filtrar() {
   renderizar();
 }
 
+let osConhecidas = null;
+
+function atualizarBadgeApp(qtd) {
+  // 1. App Badging API (iOS 16.4+ na Tela de Início e Android PWA)
+  if ('setAppBadge' in navigator) {
+    if (qtd > 0) {
+      navigator.setAppBadge(qtd).catch(() => {});
+    } else {
+      navigator.clearAppBadge().catch(() => {});
+    }
+  }
+
+  // 2. Enviar para Service Worker
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'SET_BADGE',
+      count: qtd
+    });
+  }
+
+  // 3. Atualizar Título da Aba: ex: "(7) Mil Cópias"
+  document.title = qtd > 0 ? `(${qtd}) Mil Cópias` : 'Mil Cópias';
+}
+
+function emitirSomAlerta() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    // Tom agradável de sino duplo
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
+    
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch (e) {
+    // Silencioso se navegador bloquear áudio pré-interação
+  }
+}
+
+function notificarNovasOS(novasOS) {
+  if (!novasOS || novasOS.length === 0) return;
+
+  emitirSomAlerta();
+
+  const qtd = novasOS.length;
+  const primeiraOSNum = novasOS[0];
+  const itemOS = (dados.semTriagem || []).find(x => x.os === primeiraOSNum);
+  
+  const titulo = qtd === 1 ? `🚨 Nova OS: ${primeiraOSNum}` : `🚨 ${qtd} Novas OS Recebidas!`;
+  const corpo = itemOS 
+    ? `${itemOS.cidade} - ${itemOS.cliente}\nDefeito: ${itemOS.defeito}`
+    : `Você tem ${qtd} nova(s) Ordem(ns) de Serviço pendente(s).`;
+
+  mostrarToast(`🔔 ${titulo} - ${itemOS ? itemOS.cliente : ''}`, 6000);
+
+  // Disparar Notificação Nativa no celular/sistema
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(titulo, {
+            body: corpo,
+            icon: 'apple-touch-icon.png',
+            badge: 'apple-touch-icon.png',
+            vibrate: [200, 100, 200],
+            tag: `os-${primeiraOSNum}`,
+            renotify: true
+          });
+        });
+      } else {
+        new Notification(titulo, {
+          body: corpo,
+          icon: 'apple-touch-icon.png'
+        });
+      }
+    } catch (err) {
+      console.warn('Erro ao emitir notificação nativa:', err);
+    }
+  }
+}
+
+async function solicitarPermissaoNotificacao() {
+  if (!('Notification' in window)) {
+    alert('Notificações não são suportadas neste navegador.');
+    return;
+  }
+
+  try {
+    const perm = await Notification.requestPermission();
+    atualizarBotaoNotificacao(perm);
+
+    if (perm === 'granted') {
+      mostrarToast('🔔 Notificações ativadas! Você será alertado quando novas OS chegarem.');
+      emitirSomAlerta();
+      atualizarBadgeApp(dados.semTriagem.length);
+    } else if (perm === 'denied') {
+      alert('Para receber alertas no celular, permita as notificações nas configurações do navegador/Safari.');
+    }
+  } catch (err) {
+    console.warn('Erro ao solicitar permissão:', err);
+  }
+}
+
+function atualizarBotaoNotificacao(perm) {
+  const btn = document.getElementById('btnNotificacao');
+  const icone = document.getElementById('iconeSino');
+  if (!btn || !icone) return;
+
+  const status = perm || (window.Notification ? Notification.permission : 'default');
+  if (status === 'granted') {
+    btn.classList.add('ativo');
+    icone.textContent = '🔔';
+    btn.title = 'Notificações Ativas';
+  } else {
+    btn.classList.remove('ativo');
+    icone.textContent = '🔕';
+    btn.title = 'Toque para ativar notificações no celular';
+  }
+}
+
 async function carregar() {
   try {
     const res = await fetch('/api/chamados');
     const json = await res.json();
     if (json.sucesso) {
-      dados.semTriagem = json.semTriagem || [];
-      dados.comTriagem = json.comTriagem || [];
+      const novosSemTriagem = json.semTriagem || [];
+      const novosComTriagem = json.comTriagem || [];
+
+      // Detectar se chegaram OS novas
+      const idsAtuais = novosSemTriagem.map(x => x.os);
+      if (osConhecidas !== null) {
+        const chegaram = idsAtuais.filter(id => !osConhecidas.has(id));
+        if (chegaram.length > 0) {
+          notificarNovasOS(chegaram);
+        }
+      }
+      osConhecidas = new Set(idsAtuais);
+
+      dados.semTriagem = novosSemTriagem;
+      dados.comTriagem = novosComTriagem;
+      
+      // Atualizar badge no ícone do app
+      atualizarBadgeApp(dados.semTriagem.length);
+
       renderizar();
     }
   } catch (err) {
@@ -354,5 +502,13 @@ setInterval(() => {
   if (el) el.textContent = tempo;
 }, 1000);
 
+// Registrar Service Worker para PWA, Notificações e Badging
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js?v=20261019_03')
+    .then(reg => console.log('Service Worker ativo:', reg.scope))
+    .catch(err => console.warn('SW:', err));
+}
+
+atualizarBotaoNotificacao();
 carregarTecnicos();
 carregar();

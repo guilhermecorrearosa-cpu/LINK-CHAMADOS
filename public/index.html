@@ -7,14 +7,33 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Chamados - Mil Cópias</title>
-  <link rel="stylesheet" href="style.css?v=20261019_02">
+
+  <!-- PWA & Ícones Oficiais para iPhone (iOS) e Android -->
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=20261019_03">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=20261019_03">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=20261019_03">
+  <link rel="manifest" href="manifest.json?v=20261019_03">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mil Cópias">
+  <meta name="theme-color" content="#0f172a">
+
+  <link rel="stylesheet" href="style.css?v=20261019_03">
 </head>
 <body>
 
   <!-- Topo -->
   <div class="topo">
-    <span class="topo-titulo">🖨️ Mil Cópias</span>
-    <span class="topo-timer"><span id="contador">60</span>s</span>
+    <div class="topo-esq">
+      <img src="favicon.png" alt="Logo" class="topo-logo">
+      <span class="topo-titulo">Mil Cópias</span>
+    </div>
+    <div class="topo-dir">
+      <button id="btnNotificacao" class="btn-notificacao" onclick="solicitarPermissaoNotificacao()" title="Ativar Notificações no Celular">
+        <span id="iconeSino">🔔</span>
+      </button>
+      <span class="topo-timer"><span id="contador">60</span>s</span>
+    </div>
   </div>
 
   <!-- Abas Principais -->
