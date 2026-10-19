@@ -508,13 +508,20 @@ $listaTecnicosFixa = [
     .icone-expandir { font-size: 9px; color: #94a3b8; transition: transform 0.2s ease; margin-left: 2px; }
     .item-os.expandido .icone-expandir { transform: rotate(180deg); color: #0284c7; }
 
-    /* Linha 2: Cliente + Modelo Compacto */
-    .cliente-linha { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; line-height: 1.3; }
-    .cliente-nome { font-weight: 700; font-size: 12.5px; color: #0f172a; }
-    .separador-dot { color: #94a3b8; font-size: 11px; }
+    /* Linha 2: Cliente Completo */
+    .cliente-linha { display: block; line-height: 1.3; }
+    .cliente-nome { font-weight: 700; font-size: 12.5px; color: #0f172a; word-break: break-word; }
+
+    /* Linha 3: Local / Setor + Modelo do Equipamento (Antes de Expandir) */
+    .equip-local-linha { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 1px; }
+    .badge-local {
+      font-size: 11px; font-weight: 700; color: #065f46; background: #ecfdf5;
+      border: 1px solid #a7f3d0; padding: 1px 6px; border-radius: 4px;
+      display: inline-flex; align-items: center; gap: 3px; max-width: 100%;
+    }
     .modelo-compacto {
       font-size: 11px; font-weight: 700; color: #0369a1; background: #f0f9ff;
-      padding: 1px 5px; border-radius: 3px; border: 1px solid #e0f2fe;
+      padding: 1px 5px; border-radius: 4px; border: 1px solid #bae6fd;
     }
 
     /* Linha 3: O Defeito Chamativo e Direto */
@@ -632,7 +639,7 @@ $listaTecnicosFixa = [
       <?php else: ?>
         <?php foreach ($semTriagem as $c): ?>
           <?php $nomeSt = obterNomeStatus($c['status']); $modLimpo = simplificarModelo($c['modelo']); ?>
-          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['modelo']} {$c['numserie']} {$c['defeito']}") ?>">
+          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['local']} {$c['modelo']} {$c['numserie']} {$c['defeito']}") ?>">
             <!-- 1. RESUMO COMPACTO -->
             <div class="card-resumo">
               <div class="resumo-topo">
@@ -647,9 +654,16 @@ $listaTecnicosFixa = [
                 </div>
               </div>
 
+              <!-- 2. CLIENTE COMPLETO -->
               <div class="cliente-linha">
                 <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
-                <span class="separador-dot">•</span>
+              </div>
+
+              <!-- 3. LOCAL / SETOR + MODELO (ANTES DE EXPANDIR) -->
+              <div class="equip-local-linha">
+                <?php if (!empty($c['local'])): ?>
+                  <span class="badge-local">🏢 <?= htmlspecialchars($c['local']) ?></span>
+                <?php endif; ?>
                 <span class="modelo-compacto">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
               </div>
 
@@ -689,7 +703,7 @@ $listaTecnicosFixa = [
       <?php else: ?>
         <?php foreach ($comTriagem as $c): ?>
           <?php $nomeSt = obterNomeStatus($c['status']); $modLimpo = simplificarModelo($c['modelo']); ?>
-          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['modelo']} {$c['numserie']} {$c['tecnico']} {$c['defeito']}") ?>">
+          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['local']} {$c['modelo']} {$c['numserie']} {$c['tecnico']} {$c['defeito']}") ?>">
             <!-- 1. RESUMO COMPACTO -->
             <div class="card-resumo">
               <div class="resumo-topo">
@@ -706,9 +720,16 @@ $listaTecnicosFixa = [
                 </div>
               </div>
 
+              <!-- 2. CLIENTE COMPLETO -->
               <div class="cliente-linha">
                 <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
-                <span class="separador-dot">•</span>
+              </div>
+
+              <!-- 3. LOCAL / SETOR + MODELO (ANTES DE EXPANDIR) -->
+              <div class="equip-local-linha">
+                <?php if (!empty($c['local'])): ?>
+                  <span class="badge-local">🏢 <?= htmlspecialchars($c['local']) ?></span>
+                <?php endif; ?>
                 <span class="modelo-compacto">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
               </div>
 

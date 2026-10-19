@@ -119,7 +119,7 @@ function criarItemHTML(item, isComTriagem) {
     : `<span class="tag-sla ${parseInt(item.sla) < 0 ? 'sla-atraso' : 'sla-normal'}">${item.sla}h</span>`;
 
   return `
-    <div class="item-os ${atrasadoClass} ${isExpandido ? 'expandido' : ''}" id="card-${item.os}" onclick="toggleExpandirOS('${item.os}', event)" data-status="${st}" data-texto="${(item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
+    <div class="item-os ${atrasadoClass} ${isExpandido ? 'expandido' : ''}" id="card-${item.os}" onclick="toggleExpandirOS('${item.os}', event)" data-status="${st}" data-texto="${(item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.local || '') + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
       <!-- 1. RESUMO COMPACTO (SEMPRE VISÍVEL) -->
       <div class="card-resumo">
         <!-- LINHA 1: OS + CIDADE CHAMATIVA + STATUS OFICIAL DATABIT + SLA -->
@@ -135,10 +135,14 @@ function criarItemHTML(item, isComTriagem) {
           </div>
         </div>
 
-        <!-- LINHA 2: CLIENTE + MODELO RESUMIDO -->
+        <!-- LINHA 2: CLIENTE COMPLETO -->
         <div class="cliente-linha">
           <span class="cliente-nome">${escapeHtml(item.cliente)}</span>
-          <span class="separador-dot">•</span>
+        </div>
+
+        <!-- LINHA 3: LOCAL / SETOR + MODELO (ANTES DE EXPANDIR) -->
+        <div class="equip-local-linha">
+          ${item.local ? `<span class="badge-local">🏢 ${escapeHtml(item.local)}</span>` : ''}
           <span class="modelo-compacto">🖨️ ${escapeHtml(modeloLimpo)}</span>
         </div>
 
@@ -175,7 +179,7 @@ function renderizar() {
     return lista.filter(item => {
       const st = item.status || '00';
       const nomeStatus = obterNomeStatus(st, item);
-      const txt = (item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase();
+      const txt = (item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.local || '') + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase();
       
       const bateTexto = !termo || txt.includes(termo);
       const bateSub = !aplicarSubFiltro || !subStatusAtivo || st === subStatusAtivo;
