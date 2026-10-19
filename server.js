@@ -252,7 +252,7 @@ async function carregarDetalhesReais(listaOS) {
 async function baixarCham1Original() {
   const res = await fetch(CHAM1_URL, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Mobile)' },
-    signal: AbortSignal.timeout(6000)
+    signal: AbortSignal.timeout(12000)
   });
   if (!res.ok) {
     throw new Error(`Erro ao buscar cham1.php: HTTP ${res.status}`);
