@@ -3,9 +3,13 @@
  * Mil Cópias - Painel de Chamados Ultra-Compacto para Celular
  * Integração Direta com a API Databit ERP (http://databitbh.com:54235/databitservice/)
  * Destaques:
+ * - Nomes Oficiais dos Status do Databit ERP (StatusOSController):
+ *   00 = ABERTURA OS INTERNA
+ *   01 = ABERTURA DE OS WEB
+ *   03 = ENCAMINHADO TECNICO
+ *   04 = EM ATENDIMENTO
  * - Visualização super rápida de Cidade, Cliente, Modelo e Defeito
  * - Toque na OS para expandir e acessar o botão "Definir / Transferir Técnico"
- * - Nomes reais dos status (Sem Triagem, Aberto, Encaminhado, Em Atendimento)
  * - Sem '#' nas OS
  */
 
@@ -14,14 +18,14 @@ $cham1_url = 'http://databitbh.com:51202/mc/cham1.php';
 
 function obterNomeStatus($codigo) {
     switch (trim((string)$codigo)) {
-        case '00': return 'Sem Triagem';
-        case '01': return 'Aberto';
-        case '02': return 'Agendado';
-        case '03': return 'Encaminhado';
-        case '04': return 'Em Atendimento';
-        case '05': return 'Finalizado';
-        case '06': return 'Cancelado';
-        default: return 'Status ' . $codigo;
+        case '00': return 'ABERTURA OS INTERNA';
+        case '01': return 'ABERTURA DE OS WEB';
+        case '03': return 'ENCAMINHADO TECNICO';
+        case '04': return 'EM ATENDIMENTO';
+        case '05': return 'FINALIZADO TECNICO';
+        case '06': return 'OS CONCLUIDA';
+        case '08': return 'CANCELADA MOBILE';
+        default: return 'STATUS ' . $codigo;
     }
 }
 
@@ -68,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
 
     $osObj = $listaOS[0];
     $osObj['codtec'] = $codtec;
-    $osObj['statusos'] = '03'; // Atualizar para Status 03 (Encaminhado)
+    $osObj['statusos'] = '03'; // Atualizar para Status 03 (ENCAMINHADO TECNICO)
     $osObj['alteracao'] = round(microtime(true) * 1000);
     $osObj['opaltera'] = 'DATASERVICE';
 
@@ -90,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
 
     echo json_encode([
         'sucesso' => true,
-        'mensagem' => "OS {$os} atribuída com sucesso! Atualizada para Status 03 (Encaminhado)."
+        'mensagem' => "OS {$os} atribuída com sucesso! Atualizada para ENCAMINHADO TECNICO (Status 03)."
     ]);
     exit;
 }
@@ -460,12 +464,12 @@ $listaTecnicosFixa = [
       display: inline-flex; align-items: center; gap: 2px;
     }
 
-    /* Badges com Nome Real do Status */
+    /* Badges com Nome Oficial do Status do Databit */
     .tag-status {
       font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 4px;
-      letter-spacing: 0.2px;
+      letter-spacing: 0.2px; text-transform: uppercase;
     }
-    .tag-status-00 { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .tag-status-00 { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
     .tag-status-01 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
     .tag-status-03 { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
     .tag-status-04 { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
@@ -575,16 +579,16 @@ $listaTecnicosFixa = [
     </button>
   </div>
 
-  <!-- Sub-filtros por Nomes Reais de Status -->
+  <!-- Sub-filtros por Nomes Oficiais do Databit ERP -->
   <div class="sub-filtros" id="subFiltrosBar">
     <button class="sub-btn active" id="btnSubTodas" onclick="filtrarSubStatus('')">Todas (<?= count($semTriagem) ?>)</button>
-    <button class="sub-btn" id="btnSub00" onclick="filtrarSubStatus('00')">Sem Triagem (<?= $qtdStatus00 ?>)</button>
-    <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Aberto (<?= $qtdStatus01 ?>)</button>
+    <button class="sub-btn" id="btnSub00" onclick="filtrarSubStatus('00')">Abertura Interna (<?= $qtdStatus00 ?>)</button>
+    <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Abertura Web (<?= $qtdStatus01 ?>)</button>
   </div>
 
   <!-- Busca -->
   <div class="busca">
-    <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, modelo, cliente, defeito, cidade..." onkeyup="filtrar()">
+    <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, modelo, cliente, defeito, cidade, status..." onkeyup="filtrar()">
   </div>
 
   <!-- Lista Compacta -->
@@ -627,6 +631,7 @@ $listaTecnicosFixa = [
             <!-- 2. DETALHES EXPANSÍVEIS (AO TOCAR NA OS) -->
             <div class="card-detalhes" id="detalhes-<?= htmlspecialchars($c['os']) ?>" style="display: none;">
               <div class="detalhes-grid">
+                <div><strong>Status Databit:</strong> <?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)</div>
                 <div><strong>Modelo Completo:</strong> <?= htmlspecialchars($c['modelo']) ?></div>
                 <?php if (!empty($c['numserie'])): ?>
                   <div><strong>Nº de Série:</strong> <span class="equip-serie"><?= htmlspecialchars($c['numserie']) ?></span></div>
@@ -685,6 +690,7 @@ $listaTecnicosFixa = [
             <!-- 2. DETALHES EXPANSÍVEIS (AO TOCAR NA OS) -->
             <div class="card-detalhes" id="detalhes-<?= htmlspecialchars($c['os']) ?>" style="display: none;">
               <div class="detalhes-grid">
+                <div><strong>Status Databit:</strong> <?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)</div>
                 <div><strong>Modelo Completo:</strong> <?= htmlspecialchars($c['modelo']) ?></div>
                 <?php if (!empty($c['numserie'])): ?>
                   <div><strong>Nº de Série:</strong> <span class="equip-serie"><?= htmlspecialchars($c['numserie']) ?></span></div>
@@ -722,7 +728,7 @@ $listaTecnicosFixa = [
           <div><strong>Cliente:</strong> <span id="modalCliente"></span></div>
         </div>
         <p class="modal-aviso">
-          ⚡ Ao definir o técnico, a OS será atualizada no Databit para o <strong>Status 03 (Encaminhado)</strong> e aparecerá diretamente no sistema do técnico.
+          ⚡ Ao definir o técnico, a OS será atualizada no Databit para o status <strong>ENCAMINHADO TECNICO (03)</strong> e aparecerá diretamente no sistema do técnico.
         </p>
         <div class="modal-campo">
           <label for="selectTecnico">Selecione o Técnico:</label>
@@ -865,7 +871,7 @@ $listaTecnicosFixa = [
         });
         const json = await res.json();
         if (json.sucesso) {
-          mostrarToast(`✅ OS ${osSelecionadaModal} atribuída com sucesso! Atualizada para Status 03.`);
+          mostrarToast(`✅ OS ${osSelecionadaModal} atribuída com sucesso! Atualizada para ENCAMINHADO TECNICO.`);
           fecharModalTecnico();
           setTimeout(() => { window.location.reload(); }, 1200);
         } else {

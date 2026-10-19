@@ -13,7 +13,21 @@ app.use(express.static(path.join(__dirname, 'public')));
 const API_BASE_URL = process.env.DATABIT_API_URL || 'http://databitbh.com:54235/databitservice/';
 const CHAM1_URL = process.env.CHAM1_URL || 'http://databitbh.com:51202/mc/cham1.php';
 
-// Lista de técnicos padrão para fallback rápido caso a API de técnicos demore
+// Mapeamento padrão dos nomes oficiais do Databit (StatusOSController)
+const NOMES_STATUS_PADRAO = {
+  '00': 'ABERTURA OS INTERNA',
+  '01': 'ABERTURA DE OS WEB',
+  '03': 'ENCAMINHADO TECNICO',
+  '04': 'EM ATENDIMENTO',
+  '05': 'FINALIZADO TECNICO',
+  '06': 'OS CONCLUIDA',
+  '08': 'OS NAO ATENDIDA - CANCELADA MOBILE',
+  '10': '(CONFERENCIA) RETORNO EQUIPAMENTO',
+  '11': 'ESTOQUE REVISÃO',
+  '14': 'PENDENTE ENTREGA',
+  '16': 'ATENDIMENTO INTERNO'
+};
+
 const TECNICOS_FALLBACK = [
   { codigo: '0071', nome: 'FABIANO' },
   { codigo: '0083', nome: 'LEIDIMAR' },
@@ -35,7 +49,7 @@ const TECNICOS_FALLBACK = [
 ];
 
 /**
- * Consulta a API do Databit ERP em lote para obter motivo/defeito real, status e modelo do equipamento
+ * Consulta a API do Databit ERP em lote para obter motivo/defeito real, status oficial e modelo
  */
 async function carregarDetalhesReais(listaOS) {
   if (!listaOS || listaOS.length === 0) return {};
@@ -45,7 +59,29 @@ async function carregarDetalhesReais(listaOS) {
   const inClause = osUnicas.join("','");
 
   try {
-    // 1. Buscar dados principais das OS em lote (motivo, observação, statusos, produto, numserie, codtec)
+    // 1. Buscar status oficiais no StatusOSController do Databit
+    let mapaNomesStatus = { ...NOMES_STATUS_PADRAO };
+    try {
+      const resStatus = await fetch(`${API_BASE_URL}StatusOSController/listar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filtro: "situacao = 'A'" }),
+        signal: AbortSignal.timeout(4000)
+      });
+      if (resStatus.ok) {
+        const jsonStatus = await resStatus.json();
+        const itensStatus = jsonStatus.value || (Array.isArray(jsonStatus) ? jsonStatus : []);
+        for (const s of itensStatus) {
+          if (s.codigo && s.nome) {
+            mapaNomesStatus[s.codigo.trim()] = s.nome.trim();
+          }
+        }
+      }
+    } catch (e) {
+      // Usa fallback
+    }
+
+    // 2. Buscar dados principais das OS em lote (motivo, observação, statusos, produto, numserie, codtec)
     const resOS = await fetch(`${API_BASE_URL}OsController/listar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -74,7 +110,7 @@ async function carregarDetalhesReais(listaOS) {
       }
     }
 
-    // 2. Buscar nomes dos produtos / modelos de equipamento
+    // 3. Buscar nomes dos produtos / modelos de equipamento
     let mapaProdutos = {};
     if (codigosProdutos.length > 0) {
       const prodsUnicos = [...new Set(codigosProdutos)];
@@ -100,7 +136,7 @@ async function carregarDetalhesReais(listaOS) {
       }
     }
 
-    // 3. Buscar ocorrências de defeitos (OsDefeitoController)
+    // 4. Buscar ocorrências de defeitos (OsDefeitoController)
     const resDef = await fetch(`${API_BASE_URL}OsDefeitoController/listar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -128,7 +164,7 @@ async function carregarDetalhesReais(listaOS) {
       }
     }
 
-    // 4. Carregar catálogo de defeitos se houver códigos numéricos
+    // 5. Carregar catálogo de defeitos se houver códigos numéricos
     let mapaCatalogo = {};
     if (codigosCatalogo.length > 0) {
       const catUnicos = [...new Set(codigosCatalogo)];
@@ -154,7 +190,7 @@ async function carregarDetalhesReais(listaOS) {
       }
     }
 
-    // 5. Consolidar os dados de cada OS
+    // 6. Consolidar os dados de cada OS
     for (const numOS of osUnicas) {
       let defeitoFinal = '';
       const statusFinal = (dadosOS[numOS] && dadosOS[numOS].statusos) ? dadosOS[numOS].statusos : '00';
@@ -162,6 +198,7 @@ async function carregarDetalhesReais(listaOS) {
       const codProd = (dadosOS[numOS] && dadosOS[numOS].produto) ? dadosOS[numOS].produto : '';
       const codtecFinal = (dadosOS[numOS] && dadosOS[numOS].codtec) ? dadosOS[numOS].codtec : '0000';
       const modeloFinal = mapaProdutos[codProd] || 'Equipamento não cadastrado';
+      const nomeStatusOficial = mapaNomesStatus[statusFinal] || `STATUS ${statusFinal}`;
 
       // 1ª Prioridade: Motivo direto da OS
       if (dadosOS[numOS] && dadosOS[numOS].motivo) {
@@ -196,6 +233,7 @@ async function carregarDetalhesReais(listaOS) {
       mapaResultado[numOS] = {
         defeito: defeitoFinal,
         status: statusFinal,
+        nomeStatus: nomeStatusOficial,
         modelo: modeloFinal,
         numserie: numserieFinal,
         codtec: codtecFinal
@@ -333,11 +371,10 @@ app.get('/api/tecnicos', async (req, res) => {
   } catch (err) {
     console.error('Falha ao listar técnicos na API:', err.message);
   }
-  // Fallback
   res.json({ sucesso: true, tecnicos: TECNICOS_FALLBACK });
 });
 
-// ROTA CRÍTICA: Atribuir Técnico e alterar status da OS para 03 (Encaminhado para o técnico)
+// ROTA: Atribuir Técnico e alterar status da OS para 03 (Encaminhado Técnico)
 app.post('/api/definir-tecnico', async (req, res) => {
   const { os, codtec, nomeTecnico } = req.body;
 
@@ -348,7 +385,6 @@ app.post('/api/definir-tecnico', async (req, res) => {
   try {
     console.log(`[DEFINIR TECNICO] Atribuindo OS ${os} ao técnico ${codtec} (${nomeTecnico || ''}) e mudando status para 03...`);
 
-    // 1. Buscar a OS completa no Databit
     const rBusca = await fetch(`${API_BASE_URL}OsController/listar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -368,16 +404,14 @@ app.post('/api/definir-tecnico', async (req, res) => {
 
     const osOriginal = listaOS[0];
 
-    // 2. Montar objeto atualizado com codtec e statusos = 03
     const osAtualizada = {
       ...osOriginal,
       codtec: codtec.trim(),
-      statusos: '03', // Status 03: Encaminhada / Com Técnico
+      statusos: '03', // 03 = ENCAMINHADO TECNICO
       alteracao: Date.now(),
       opaltera: 'DATASERVICE'
     };
 
-    // 3. Salvar no Databit via OsController/editar
     const rEdit = await fetch(`${API_BASE_URL}OsController/editar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -402,7 +436,8 @@ app.post('/api/definir-tecnico', async (req, res) => {
       codtec: codtec,
       nomeTecnico: nomeTecnico,
       novoStatus: '03',
-      mensagem: `OS ${os} foi atribuída ao técnico com sucesso e atualizada para o Status 03!`
+      nomeNovoStatus: 'ENCAMINHADO TECNICO',
+      mensagem: `OS ${os} foi atribuída ao técnico com sucesso e atualizada para ENCAMINHADO TECNICO!`
     });
   } catch (err) {
     console.error(`[DEFINIR TECNICO ERRO] Falha ao atribuir OS ${os}:`, err);
@@ -410,23 +445,23 @@ app.post('/api/definir-tecnico', async (req, res) => {
   }
 });
 
-// ROTA PRINCIPAL: Retorna chamados consolidados com defeito real, modelo e status
+// ROTA PRINCIPAL: Retorna chamados consolidados com defeito real, modelo e status oficial do Databit
 app.get('/api/chamados', async (req, res) => {
   try {
     const html = await baixarCham1Original();
     const dados = interpretarCham1(html);
 
-    // Buscar defeitos, modelo e status na API oficial do Databit
+    // Buscar defeitos, modelo e status oficiais na API oficial do Databit
     const detalhes = await carregarDetalhesReais(dados.todasOS);
 
     let qtdStatus00 = 0;
     let qtdStatus01 = 0;
 
-    // Inserir defeito, modelo e status em cada chamado
     const semTriagemEnriquecido = dados.semTriagem.map(item => {
       const info = detalhes[item.os] || {
         defeito: 'Não informado',
         status: '00',
+        nomeStatus: NOMES_STATUS_PADRAO['00'],
         modelo: 'Equipamento não cadastrado',
         numserie: '',
         codtec: '0000'
@@ -437,6 +472,7 @@ app.get('/api/chamados', async (req, res) => {
         ...item,
         defeito: info.defeito,
         status: st,
+        nomeStatus: info.nomeStatus || NOMES_STATUS_PADRAO[st] || `Status ${st}`,
         modelo: info.modelo,
         numserie: info.numserie,
         codtec: info.codtec
@@ -447,14 +483,17 @@ app.get('/api/chamados', async (req, res) => {
       const info = detalhes[item.os] || {
         defeito: 'Não informado',
         status: '03',
+        nomeStatus: NOMES_STATUS_PADRAO['03'],
         modelo: 'Equipamento não cadastrado',
         numserie: '',
         codtec: '0000'
       };
+      const st = info.status || '03';
       return {
         ...item,
         defeito: info.defeito,
-        status: info.status || '03',
+        status: st,
+        nomeStatus: info.nomeStatus || NOMES_STATUS_PADRAO[st] || `Status ${st}`,
         modelo: info.modelo,
         numserie: info.numserie,
         codtec: info.codtec
@@ -468,7 +507,9 @@ app.get('/api/chamados', async (req, res) => {
       totais: {
         semTriagem: semTriagemEnriquecido.length,
         status00: qtdStatus00,
+        nomeStatus00: NOMES_STATUS_PADRAO['00'],
         status01: qtdStatus01,
+        nomeStatus01: NOMES_STATUS_PADRAO['01'],
         comTriagem: comTriagemEnriquecido.length,
         total: semTriagemEnriquecido.length + comTriagemEnriquecido.length
       },

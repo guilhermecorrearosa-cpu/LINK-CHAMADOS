@@ -1,8 +1,12 @@
 /**
  * Frontend Ultra-Compacto e Resumido para Celular (Mil Cópias)
+ * - Nomes Oficiais dos Status vindos direto do Databit ERP (StatusOSController):
+ *   00 = ABERTURA OS INTERNA
+ *   01 = ABERTURA DE OS WEB
+ *   03 = ENCAMINHADO TECNICO
+ *   04 = EM ATENDIMENTO
  * - Visualização super rápida de Cidade, Cliente, Modelo e Defeito
  * - Toque na OS para expandir e acessar o botão "Definir / Transferir Técnico"
- * - Nomes reais dos status (Sem Triagem, Aberto, Encaminhado, Em Atendimento)
  * - Sem '#' nas OS
  */
 
@@ -13,17 +17,22 @@ let subStatusAtivo = '';
 let osSelecionadaModal = null;
 let osExpandidas = new Set();
 
-function obterNomeStatus(codigo) {
-  switch (String(codigo).trim()) {
-    case '00': return 'Sem Triagem';
-    case '01': return 'Aberto';
-    case '02': return 'Agendado';
-    case '03': return 'Encaminhado';
-    case '04': return 'Em Atendimento';
-    case '05': return 'Finalizado';
-    case '06': return 'Cancelado';
-    default: return 'Status ' + codigo;
+const MAPA_STATUS_DATABIT = {
+  '00': 'ABERTURA OS INTERNA',
+  '01': 'ABERTURA DE OS WEB',
+  '03': 'ENCAMINHADO TECNICO',
+  '04': 'EM ATENDIMENTO',
+  '05': 'FINALIZADO TECNICO',
+  '06': 'OS CONCLUIDA',
+  '08': 'CANCELADA MOBILE'
+};
+
+function obterNomeStatus(codigo, item) {
+  if (item && item.nomeStatus) {
+    return item.nomeStatus;
   }
+  const cod = String(codigo || '').trim();
+  return MAPA_STATUS_DATABIT[cod] || ('STATUS ' + cod);
 }
 
 function simplificarModelo(nome) {
@@ -79,7 +88,6 @@ function filtrarSubStatus(st) {
 }
 
 function toggleExpandirOS(os, event) {
-  // Se clicou no botão interno de definir técnico, não toggleia
   if (event && event.target && event.target.closest('.btn-definir-tecnico')) {
     return;
   }
@@ -102,7 +110,7 @@ function toggleExpandirOS(os, event) {
 function criarItemHTML(item, isComTriagem) {
   const atrasadoClass = item.atrasado ? 'atrasado' : '';
   const st = item.status || (isComTriagem ? '03' : '00');
-  const nomeStatus = obterNomeStatus(st);
+  const nomeStatus = obterNomeStatus(st, item);
   const modeloLimpo = simplificarModelo(item.modelo);
   const isExpandido = osExpandidas.has(item.os);
 
@@ -114,7 +122,7 @@ function criarItemHTML(item, isComTriagem) {
     <div class="item-os ${atrasadoClass} ${isExpandido ? 'expandido' : ''}" id="card-${item.os}" onclick="toggleExpandirOS('${item.os}', event)" data-status="${st}" data-texto="${(item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
       <!-- 1. RESUMO COMPACTO (SEMPRE VISÍVEL) -->
       <div class="card-resumo">
-        <!-- LINHA 1: OS + CIDADE CHAMATIVA + STATUS REAL + SLA -->
+        <!-- LINHA 1: OS + CIDADE CHAMATIVA + STATUS OFICIAL DATABIT + SLA -->
         <div class="resumo-topo">
           <div class="topo-esquerda">
             <span class="os-num">${escapeHtml(item.os)}</span>
@@ -144,6 +152,7 @@ function criarItemHTML(item, isComTriagem) {
       <!-- 2. DETALHES EXPANSÍVEIS (MOSTRADOS AO TOCAR NA OS) -->
       <div class="card-detalhes" id="detalhes-${item.os}" style="display: ${isExpandido ? 'flex' : 'none'};">
         <div class="detalhes-grid">
+          <div><strong>Status Databit:</strong> ${escapeHtml(nomeStatus)} (${st})</div>
           <div><strong>Modelo Completo:</strong> ${escapeHtml(item.modelo || 'Não cadastrado')}</div>
           ${item.numserie ? `<div><strong>Nº de Série:</strong> <span class="equip-serie">${escapeHtml(item.numserie)}</span></div>` : ''}
           ${item.local ? `<div><strong>Local/Setor:</strong> ${escapeHtml(item.local)}</div>` : ''}
@@ -165,7 +174,7 @@ function renderizar() {
   const filtrarLista = (lista, aplicarSubFiltro) => {
     return lista.filter(item => {
       const st = item.status || '00';
-      const nomeStatus = obterNomeStatus(st);
+      const nomeStatus = obterNomeStatus(st, item);
       const txt = (item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase();
       
       const bateTexto = !termo || txt.includes(termo);
@@ -310,9 +319,8 @@ async function confirmarDefinicaoTecnico() {
 
     const json = await res.json();
     if (json.sucesso) {
-      mostrarToast(`✅ OS ${osSelecionadaModal} atribuída com sucesso! Atualizada para Status 03.`);
+      mostrarToast(`✅ OS ${osSelecionadaModal} atribuída com sucesso! Atualizada para ENCAMINHADO TECNICO.`);
       fecharModalTecnico();
-      // Recarregar os chamados na hora
       await carregar();
     } else {
       alert(`Erro ao atribuir técnico: ${json.erro || 'Falha desconhecida.'}`);
@@ -335,7 +343,6 @@ function mostrarToast(msg, duracao = 4000) {
   }, duracao);
 }
 
-// Timer regressivo de 60 segundos
 let tempo = 60;
 setInterval(() => {
   tempo--;
