@@ -12,6 +12,9 @@ self.addEventListener('activate', (event) => {
 // Manipular cliques nas notificações
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  if (navigator.clearAppBadge) {
+    navigator.clearAppBadge().catch(() => {});
+  }
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {

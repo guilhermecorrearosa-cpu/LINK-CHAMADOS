@@ -227,26 +227,48 @@ function filtrar() {
 let osConhecidas = null;
 
 function atualizarBadgeApp(qtd) {
-  // 1. App Badging API (iOS 16.4+ na Tela de Início e Android PWA)
-  if ('setAppBadge' in navigator) {
-    if (qtd > 0) {
-      navigator.setAppBadge(qtd).catch(() => {});
-    } else {
+  const num = parseInt(qtd, 10) || 0;
+
+  // 1. App Badging API oficial (iOS 16.4+ na Tela de Início e Android PWA)
+  if (num <= 0) {
+    if ('clearAppBadge' in navigator) {
       navigator.clearAppBadge().catch(() => {});
+    } else if ('setAppBadge' in navigator) {
+      navigator.setAppBadge(0).catch(() => {});
     }
+  } else if ('setAppBadge' in navigator) {
+    navigator.setAppBadge(num).catch(() => {});
   }
 
   // 2. Enviar para Service Worker
   if (navigator.serviceWorker && navigator.serviceWorker.controller) {
     navigator.serviceWorker.controller.postMessage({
       type: 'SET_BADGE',
-      count: qtd
+      count: num
     });
   }
 
-  // 3. Atualizar Título da Aba: ex: "(7) Mil Cópias"
-  document.title = qtd > 0 ? `(${qtd}) Mil Cópias` : 'Mil Cópias';
+  // 3. Atualizar Título da Aba: só mostra número se houver novas não vistas
+  document.title = num > 0 ? `(${num}) Mil Cópias` : 'Mil Cópias';
 }
+
+function marcarTodasComoVistas() {
+  if (dados.semTriagem) {
+    const idsAtuais = dados.semTriagem.map(x => x.os);
+    localStorage.setItem('milcopias_os_vistas', JSON.stringify(idsAtuais));
+  }
+  atualizarBadgeApp(0);
+}
+
+// Quando o usuário abre, foca ou toca no aplicativo, limpa o badge e marca como vistas
+window.addEventListener('focus', marcarTodasComoVistas);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    marcarTodasComoVistas();
+  }
+});
+window.addEventListener('click', marcarTodasComoVistas, { passive: true });
+window.addEventListener('touchstart', marcarTodasComoVistas, { passive: true });
 
 function emitirSomAlerta() {
   try {
@@ -363,8 +385,17 @@ async function carregar() {
       const novosSemTriagem = json.semTriagem || [];
       const novosComTriagem = json.comTriagem || [];
 
-      // Detectar se chegaram OS novas
+      // Detectar OS não vistas e novas
       const idsAtuais = novosSemTriagem.map(x => x.os);
+      let vistas = [];
+      try {
+        vistas = JSON.parse(localStorage.getItem('milcopias_os_vistas') || '[]');
+      } catch (e) {
+        vistas = [];
+      }
+
+      const naoVistas = idsAtuais.filter(id => !vistas.includes(id));
+
       if (osConhecidas !== null) {
         const chegaram = idsAtuais.filter(id => !osConhecidas.has(id));
         if (chegaram.length > 0) {
@@ -376,8 +407,14 @@ async function carregar() {
       dados.semTriagem = novosSemTriagem;
       dados.comTriagem = novosComTriagem;
       
-      // Atualizar badge no ícone do app
-      atualizarBadgeApp(dados.semTriagem.length);
+      // Se o usuário está com o aplicativo aberto, todas foram visualizadas: zera o badge!
+      if (document.visibilityState === 'visible') {
+        localStorage.setItem('milcopias_os_vistas', JSON.stringify(idsAtuais));
+        atualizarBadgeApp(0);
+      } else {
+        // Se estiver em segundo plano, o badge mostra apenas as novas que ainda não foram vistas
+        atualizarBadgeApp(naoVistas.length);
+      }
 
       renderizar();
     }

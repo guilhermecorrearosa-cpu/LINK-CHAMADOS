@@ -926,18 +926,36 @@ $listaTecnicosFixa = [
     }
 
     function atualizarBadgeApp(qtd) {
-      if ('setAppBadge' in navigator) {
-        if (qtd > 0) {
-          navigator.setAppBadge(qtd).catch(() => {});
-        } else {
+      const num = parseInt(qtd, 10) || 0;
+      if (num <= 0) {
+        if ('clearAppBadge' in navigator) {
           navigator.clearAppBadge().catch(() => {});
+        } else if ('setAppBadge' in navigator) {
+          navigator.setAppBadge(0).catch(() => {});
         }
+      } else if ('setAppBadge' in navigator) {
+        navigator.setAppBadge(num).catch(() => {});
       }
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'SET_BADGE', count: qtd });
+        navigator.serviceWorker.controller.postMessage({ type: 'SET_BADGE', count: num });
       }
-      document.title = qtd > 0 ? '(' + qtd + ') Mil Cópias' : 'Mil Cópias';
+      document.title = num > 0 ? '(' + num + ') Mil Cópias' : 'Mil Cópias';
     }
+
+    function marcarTodasComoVistas() {
+      const osAtuais = <?= json_encode(array_column($semTriagem, 'os')) ?>;
+      localStorage.setItem('milcopias_os_vistas', JSON.stringify(osAtuais));
+      atualizarBadgeApp(0);
+    }
+
+    window.addEventListener('focus', marcarTodasComoVistas);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        marcarTodasComoVistas();
+      }
+    });
+    window.addEventListener('click', marcarTodasComoVistas, { passive: true });
+    window.addEventListener('touchstart', marcarTodasComoVistas, { passive: true });
 
     function emitirSomAlerta() {
       try {
@@ -969,7 +987,7 @@ $listaTecnicosFixa = [
         if (perm === 'granted') {
           mostrarToast('🔔 Notificações ativadas no celular!');
           emitirSomAlerta();
-          atualizarBadgeApp(<?= count($semTriagem) ?>);
+          marcarTodasComoVistas();
         } else if (perm === 'denied') {
           alert('Para receber alertas no celular, permita as notificações nas configurações do Safari/navegador.');
         }
@@ -994,6 +1012,15 @@ $listaTecnicosFixa = [
     (function verificarNovasOS() {
       const osAtuais = <?= json_encode(array_column($semTriagem, 'os')) ?>;
       const salvas = localStorage.getItem('milcopias_os_conhecidas');
+      let vistas = [];
+      try {
+        vistas = JSON.parse(localStorage.getItem('milcopias_os_vistas') || '[]');
+      } catch (e) {
+        vistas = [];
+      }
+
+      const naoVistas = osAtuais.filter(x => !vistas.includes(x));
+
       if (salvas) {
         try {
           const listaAntiga = JSON.parse(salvas);
@@ -1012,15 +1039,22 @@ $listaTecnicosFixa = [
         } catch (e) {}
       }
       localStorage.setItem('milcopias_os_conhecidas', JSON.stringify(osAtuais));
+
+      // Se a página está aberta e visível, o usuário acabou de ver todas as OS: limpa o badge!
+      if (document.visibilityState === 'visible') {
+        localStorage.setItem('milcopias_os_vistas', JSON.stringify(osAtuais));
+        atualizarBadgeApp(0);
+      } else {
+        atualizarBadgeApp(naoVistas.length);
+      }
     })();
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=20261019_03')
+      navigator.serviceWorker.register('sw.js?v=20261019_04')
         .then(reg => console.log('SW ativo:', reg.scope))
         .catch(err => console.warn('SW:', err));
     }
 
-    atualizarBadgeApp(<?= count($semTriagem) ?>);
     atualizarBotaoNotificacao();
 
     let t = 60;
