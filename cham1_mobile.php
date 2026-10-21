@@ -480,74 +480,72 @@ $listaTecnicosFixa = [
     .tab-conteudo { display: none; }
     .tab-conteudo.active { display: block; }
 
-    /* Card Clean */
+    /* Card Clean Ultra-Compacto */
     .item-os {
-      background: #ffffff; border-radius: 10px; padding: 10px 12px; margin-bottom: 7px;
+      background: #ffffff; border-radius: 8px; padding: 7px 10px; margin-bottom: 5px;
       border: 1px solid #eef2f6; cursor: pointer; transition: all 0.15s ease;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.01);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
       user-select: none; -webkit-tap-highlight-color: transparent;
     }
-    .item-os:active { background: #fafbfc; transform: scale(0.995); }
-    .item-os.atrasado { border-left: 3.5px solid #ef4444; }
+    .item-os:active { background: #fafbfc; }
+    .item-os.atrasado { border-left: 3px solid #ef4444; }
     .item-os.expandido { border-color: #cbd5e1; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05); }
 
-    .card-resumo { display: flex; flex-direction: column; gap: 5px; }
+    .card-resumo { display: flex; flex-direction: column; gap: 3px; }
 
-    /* Linha 1: Metadados */
-    .resumo-topo { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
-    .topo-esquerda { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    /* LINHA 1: Topo Fluido (OS · CIDADE · CLIENTE | STATUS · SLA) */
+    .resumo-linha-topo {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 6px;
+    }
+    .resumo-topo-esq {
+      display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; min-width: 0; flex: 1;
+    }
     .os-num {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", monospace;
-      font-weight: 700; font-size: 13px; color: #0f172a; letter-spacing: -0.1px;
+      font-weight: 700; font-size: 13px; color: #0284c7; letter-spacing: -0.2px; flex-shrink: 0;
     }
     .dot-sep { color: #cbd5e1; font-size: 11px; }
     .badge-cidade {
-      font-size: 11px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.2px;
+      font-size: 11px; font-weight: 700; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.2px; flex-shrink: 0;
+    }
+    .cliente-nome {
+      font-weight: 600; font-size: 12.5px; color: #0f172a; line-height: 1.25; word-break: break-word;
+    }
+    .resumo-topo-dir {
+      display: flex; align-items: center; gap: 5px; flex-shrink: 0;
     }
     .tag-status {
-      font-size: 10.5px; font-weight: 600; padding: 1.5px 7px; border-radius: 10px; letter-spacing: 0.1px;
+      font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 8px; letter-spacing: 0.1px; white-space: nowrap;
     }
     .tag-status-00 { background: #f1f5f9; color: #475569; }
     .tag-status-01 { background: #fef3c7; color: #92400e; }
     .tag-status-03 { background: #e0f2fe; color: #0369a1; }
     .tag-status-04 { background: #dcfce7; color: #15803d; }
 
-    .topo-direita { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-    .tag-sla { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .tag-sla { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .sla-atraso { color: #dc2626; font-weight: 700; }
     .sla-normal { color: #94a3b8; }
     .tag-tecnico {
-      font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
-      text-transform: uppercase; color: #0f172a;
+      font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 5px;
+      text-transform: uppercase; color: #0f172a; white-space: nowrap;
     }
-    .icone-expandir { font-size: 11px; color: #94a3b8; transition: transform 0.2s ease; display: inline-block; }
+    .icone-expandir { font-size: 12px; color: #94a3b8; transition: transform 0.2s ease; display: inline-block; line-height: 1; }
     .item-os.expandido .icone-expandir { transform: rotate(90deg); color: #0284c7; }
 
-    /* Linha 2: Cliente Completo */
-    .cliente-linha { display: block; }
-    .cliente-nome { font-weight: 600; font-size: 13px; color: #0f172a; line-height: 1.3; word-break: break-word; }
-
-    /* Linha 3: Local / Setor + Modelo (Minimalista) */
-    .equip-local-linha { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    /* LINHA 2: Informações Técnicas Inline (LOCAL · MODELO · DEFEITO) */
+    .resumo-linha-info {
+      display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 11.5px; line-height: 1.3;
+    }
     .badge-local {
-      font-size: 11px; font-weight: 600; color: #065f46; background: #f0fdf4;
-      padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 3px;
+      font-size: 10.5px; font-weight: 600; color: #065f46; background: #f0fdf4;
+      padding: 1px 5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap;
     }
     .modelo-compacto {
-      font-size: 11px; font-weight: 600; color: #0369a1; background: #f0f9ff;
-      padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 3px;
+      font-size: 10.5px; font-weight: 600; color: #0369a1; background: #f0f9ff;
+      padding: 1px 5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap;
     }
-
-    /* Linha 4: Defeito (Callout Elegante & Limpo) */
-    .resumo-defeito {
-      background: #f8fafc; border-left: 2.5px solid #cbd5e1; border-radius: 0 4px 4px 0;
-      padding: 4px 8px; display: flex; align-items: baseline; gap: 5px; margin-top: 2px;
-    }
-    .defeito-rotulo {
-      font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.2px; flex-shrink: 0;
-    }
-    .defeito-texto {
-      font-weight: 500; font-size: 12px; color: #334155; line-height: 1.3; word-break: break-word;
+    .defeito-inline {
+      font-size: 11px; font-weight: 500; color: #475569; display: inline-flex; align-items: center; gap: 3px; word-break: break-word;
     }
 
     /* Detalhes Expansíveis */
@@ -675,38 +673,31 @@ $listaTecnicosFixa = [
         <?php foreach ($semTriagem as $c): ?>
           <?php $nomeSt = obterNomeStatus($c['status']); $modLimpo = simplificarModelo($c['modelo']); ?>
           <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['local']} {$c['modelo']} {$c['numserie']} {$c['defeito']}") ?>">
-            <!-- 1. RESUMO COMPACTO & CLEAN -->
+            <!-- 1. RESUMO ULTRA-COMPACTO & CLEAN (2 LINHAS) -->
             <div class="card-resumo">
-              <div class="resumo-topo">
-                <div class="topo-esquerda">
+              <!-- LINHA 1: OS · CIDADE · CLIENTE | STATUS · SLA -->
+              <div class="resumo-linha-topo">
+                <div class="resumo-topo-esq">
                   <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
                   <span class="dot-sep">·</span>
                   <span class="badge-cidade"><?= htmlspecialchars($c['cidade']) ?></span>
-                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
+                  <span class="dot-sep">·</span>
+                  <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
                 </div>
-                <div class="topo-direita">
+                <div class="resumo-topo-dir">
+                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
                   <span class="tag-sla <?= (int)$c['sla'] < 0 ? 'sla-atraso' : 'sla-normal' ?>"><?= $c['sla'] ?>h</span>
                   <span class="icone-expandir">›</span>
                 </div>
               </div>
 
-              <!-- 2. CLIENTE COMPLETO -->
-              <div class="cliente-linha">
-                <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
-              </div>
-
-              <!-- 3. LOCAL / SETOR + MODELO (ANTES DE EXPANDIR) -->
-              <div class="equip-local-linha">
+              <!-- LINHA 2: LOCAL · MODELO · DEFEITO (INLINE) -->
+              <div class="resumo-linha-info">
                 <?php if (!empty($c['local'])): ?>
                   <span class="badge-local">🏢 <?= htmlspecialchars($c['local']) ?></span>
                 <?php endif; ?>
                 <span class="modelo-compacto">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
-              </div>
-
-              <!-- 4. DEFEITO DIRETO & ELEGANTE -->
-              <div class="resumo-defeito">
-                <span class="defeito-rotulo">Defeito</span>
-                <span class="defeito-texto"><?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></span>
+                <span class="defeito-inline">🔧 <?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></span>
               </div>
             </div>
 
@@ -741,16 +732,19 @@ $listaTecnicosFixa = [
         <?php foreach ($comTriagem as $c): ?>
           <?php $nomeSt = obterNomeStatus($c['status']); $modLimpo = simplificarModelo($c['modelo']); ?>
           <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['local']} {$c['modelo']} {$c['numserie']} {$c['tecnico']} {$c['defeito']}") ?>">
-            <!-- 1. RESUMO COMPACTO & CLEAN -->
+            <!-- 1. RESUMO ULTRA-COMPACTO & CLEAN (2 LINHAS) -->
             <div class="card-resumo">
-              <div class="resumo-topo">
-                <div class="topo-esquerda">
+              <!-- LINHA 1: OS · CIDADE · CLIENTE | STATUS · TÉCNICO -->
+              <div class="resumo-linha-topo">
+                <div class="resumo-topo-esq">
                   <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
                   <span class="dot-sep">·</span>
                   <span class="badge-cidade"><?= htmlspecialchars($c['cidade']) ?></span>
-                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
+                  <span class="dot-sep">·</span>
+                  <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
                 </div>
-                <div class="topo-direita">
+                <div class="resumo-topo-dir">
+                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
                   <span class="tag-tecnico" style="background-color: <?= htmlspecialchars($c['corTecnico']) ?>">
                     <?= htmlspecialchars($c['tecnico']) ?>
                   </span>
@@ -758,23 +752,13 @@ $listaTecnicosFixa = [
                 </div>
               </div>
 
-              <!-- 2. CLIENTE COMPLETO -->
-              <div class="cliente-linha">
-                <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
-              </div>
-
-              <!-- 3. LOCAL / SETOR + MODELO (ANTES DE EXPANDIR) -->
-              <div class="equip-local-linha">
+              <!-- LINHA 2: LOCAL · MODELO · DEFEITO (INLINE) -->
+              <div class="resumo-linha-info">
                 <?php if (!empty($c['local'])): ?>
                   <span class="badge-local">🏢 <?= htmlspecialchars($c['local']) ?></span>
                 <?php endif; ?>
                 <span class="modelo-compacto">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
-              </div>
-
-              <!-- 4. DEFEITO DIRETO & ELEGANTE -->
-              <div class="resumo-defeito">
-                <span class="defeito-rotulo">Defeito</span>
-                <span class="defeito-texto"><?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></span>
+                <span class="defeito-inline">🔧 <?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></span>
               </div>
             </div>
 

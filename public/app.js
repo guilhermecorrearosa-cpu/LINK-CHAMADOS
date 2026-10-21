@@ -120,37 +120,29 @@ function criarItemHTML(item, isComTriagem) {
 
   return `
     <div class="item-os ${atrasadoClass} ${isExpandido ? 'expandido' : ''}" id="card-${item.os}" onclick="toggleExpandirOS('${item.os}', event)" data-status="${st}" data-texto="${(item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.local || '') + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
-      <!-- 1. RESUMO COMPACTO & CLEAN (SEMPRE VISÍVEL) -->
+      <!-- 1. RESUMO ULTRA-COMPACTO & CLEAN (2 LINHAS) -->
       <div class="card-resumo">
-        <!-- LINHA 1: METADADOS (OS · CIDADE · STATUS OFICIAL · SLA) -->
-        <div class="resumo-topo">
-          <div class="topo-esquerda">
+        <!-- LINHA 1: OS · CIDADE · CLIENTE | STATUS · SLA / TÉCNICO -->
+        <div class="resumo-linha-topo">
+          <div class="resumo-topo-esq">
             <span class="os-num">${escapeHtml(item.os)}</span>
             <span class="dot-sep">·</span>
             <span class="badge-cidade">${escapeHtml(item.cidade || '')}</span>
-            <span class="tag-status tag-status-${st}">${escapeHtml(nomeStatus)}</span>
+            <span class="dot-sep">·</span>
+            <span class="cliente-nome">${escapeHtml(item.cliente)}</span>
           </div>
-          <div class="topo-direita">
+          <div class="resumo-topo-dir">
+            <span class="tag-status tag-status-${st}">${escapeHtml(nomeStatus)}</span>
             ${rightTag}
             <span class="icone-expandir">›</span>
           </div>
         </div>
 
-        <!-- LINHA 2: CLIENTE COMPLETO -->
-        <div class="cliente-linha">
-          <span class="cliente-nome">${escapeHtml(item.cliente)}</span>
-        </div>
-
-        <!-- LINHA 3: LOCAL / SETOR + MODELO (ANTES DE EXPANDIR) -->
-        <div class="equip-local-linha">
+        <!-- LINHA 2: LOCAL · MODELO · DEFEITO (INLINE) -->
+        <div class="resumo-linha-info">
           ${item.local ? `<span class="badge-local">🏢 ${escapeHtml(item.local)}</span>` : ''}
           <span class="modelo-compacto">🖨️ ${escapeHtml(modeloLimpo)}</span>
-        </div>
-
-        <!-- LINHA 4: DEFEITO DIRETO & ELEGANTE -->
-        <div class="resumo-defeito">
-          <span class="defeito-rotulo">Defeito</span>
-          <span class="defeito-texto">${escapeHtml(item.defeito || 'Não informado')}</span>
+          <span class="defeito-inline">🔧 ${escapeHtml(item.defeito || 'Não informado')}</span>
         </div>
       </div>
 
