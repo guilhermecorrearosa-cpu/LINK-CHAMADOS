@@ -1262,28 +1262,20 @@ body {
                 <span class="ticket-os-num"><?= htmlspecialchars($c['os']) ?></span>
                 <span class="badge-rota <?= $classeRota ?>"><?= htmlspecialchars($c['cidade'] ?: 'GERAL') ?></span>
               </div>
-              <div class="ticket-status-sla">
-                <span class="badge-status-databit status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
-                <span class="badge-sla-pill <?= (int)$c['sla'] < 0 ? 'sla-atrasado' : 'sla-ok' ?>"><?= $c['sla'] ?>h</span>
+              <div class="ticket-acoes-dir">
+                <span class="ticket-chevron">›</span>
               </div>
             </div>
 
             <div class="ticket-cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
 
-            <div class="ticket-equip-meta">
+            <div class="ticket-linha-resumo">
+              <span class="resumo-chip-mod">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
               <?php if (!empty($c['local'])): ?>
-                <span class="chip-equip chip-equip-local">🏢 <?= htmlspecialchars($c['local']) ?></span>
+                <span class="dot-sep-inline">·</span><span class="resumo-chip-loc">🏢 <?= htmlspecialchars($c['local']) ?></span>
               <?php endif; ?>
-              <span class="chip-equip chip-equip-modelo">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
-            </div>
-
-            <div class="ticket-rodape">
-              <div class="ticket-defeito-preview">
-                <span>🔧 <?= htmlspecialchars($c['defeito'] ?: 'Sem detalhes informados') ?></span>
-              </div>
-              <button class="btn-quick-assign" onclick="event.stopPropagation(); abrirBottomSheet('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['cidade']) ?>', '<?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)', '<?= addslashes($c['modelo']) ?>', '<?= htmlspecialchars($c['numserie']) ?>', '<?= addslashes($c['local']) ?>', '', '<?= addslashes($c['defeito'] ?: 'Não informado') ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
-                👤 Atribuir
-              </button>
+              <span class="dot-sep-inline">·</span>
+              <span class="resumo-chip-def">🔧 <?= htmlspecialchars($c['defeito'] ?: 'Sem defeito') ?></span>
             </div>
           </article>
         <?php endforeach; ?>
@@ -1307,8 +1299,7 @@ body {
                 <span class="ticket-os-num"><?= htmlspecialchars($c['os']) ?></span>
                 <span class="badge-rota <?= $classeRota ?>"><?= htmlspecialchars($c['cidade'] ?: 'GERAL') ?></span>
               </div>
-              <div class="ticket-status-sla">
-                <span class="badge-status-databit status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
+              <div class="ticket-acoes-dir">
                 <span class="badge-tecnico-nome" style="background-color: <?= htmlspecialchars($c['corTecnico']) ?>">
                   <?= htmlspecialchars($c['tecnico']) ?>
                 </span>
@@ -1317,20 +1308,13 @@ body {
 
             <div class="ticket-cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
 
-            <div class="ticket-equip-meta">
+            <div class="ticket-linha-resumo">
+              <span class="resumo-chip-mod">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
               <?php if (!empty($c['local'])): ?>
-                <span class="chip-equip chip-equip-local">🏢 <?= htmlspecialchars($c['local']) ?></span>
+                <span class="dot-sep-inline">·</span><span class="resumo-chip-loc">🏢 <?= htmlspecialchars($c['local']) ?></span>
               <?php endif; ?>
-              <span class="chip-equip chip-equip-modelo">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
-            </div>
-
-            <div class="ticket-rodape">
-              <div class="ticket-defeito-preview">
-                <span>🔧 <?= htmlspecialchars($c['defeito'] ?: 'Sem detalhes informados') ?></span>
-              </div>
-              <button class="btn-quick-assign" onclick="event.stopPropagation(); abrirBottomSheet('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['cidade']) ?>', '<?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)', '<?= addslashes($c['modelo']) ?>', '<?= htmlspecialchars($c['numserie']) ?>', '<?= addslashes($c['local']) ?>', '<?= addslashes($c['tecnico']) ?>', '<?= addslashes($c['defeito'] ?: 'Não informado') ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
-                👤 Alterar
-              </button>
+              <span class="dot-sep-inline">·</span>
+              <span class="resumo-chip-def">🔧 <?= htmlspecialchars($c['defeito'] ?: 'Sem defeito') ?></span>
             </div>
           </article>
         <?php endforeach; ?>

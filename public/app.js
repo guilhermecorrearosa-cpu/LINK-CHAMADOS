@@ -158,49 +158,37 @@ function filtrar() {
 function criarCardHTML(item, isComTriagem) {
   const atrasadoClass = item.atrasado ? 'atrasado' : '';
   const st = item.status || (isComTriagem ? '03' : '00');
-  const nomeStatus = obterNomeStatus(st, item);
   const modeloLimpo = simplificarModelo(item.modelo);
   const classeRota = obterClasseRota(item.cidade);
 
   const rightTag = isComTriagem
     ? `<span class="badge-tecnico-nome" style="background-color: ${item.corTecnico || '#38bdf8'}">${escapeHtml(item.tecnico)}</span>`
-    : `<span class="badge-sla-pill ${parseInt(item.sla) < 0 ? 'sla-atrasado' : 'sla-ok'}">${item.sla}h</span>`;
-
-  const itemJsonEscapado = escapeHtml(JSON.stringify(item));
+    : `<span class="ticket-chevron">›</span>`;
 
   return `
     <article class="ticket-card ${atrasadoClass}" id="card-${item.os}" onclick="abrirBottomSheetPorId('${item.os}', ${isComTriagem})" data-status="${st}">
-      <!-- LINHA 1: TOPO DO TICKET -->
+      <!-- LINHA 1: OS + CIDADE | TÉCNICO OU CHEVRON -->
       <div class="ticket-topo">
         <div class="ticket-origem">
           <span class="ticket-os-num">${escapeHtml(item.os)}</span>
           <span class="badge-rota ${classeRota}">${escapeHtml(item.cidade || 'GERAL')}</span>
         </div>
-        <div class="ticket-status-sla">
-          <span class="badge-status-databit status-${st}">${escapeHtml(nomeStatus)}</span>
+        <div class="ticket-acoes-dir">
           ${rightTag}
         </div>
       </div>
 
-      <!-- LINHA 2: CLIENTE HERO (DESTAQUE MÁXIMO) -->
+      <!-- LINHA 2: CLIENTE (DESTAQUE MÁXIMO) -->
       <div class="ticket-cliente-nome">
         ${escapeHtml(item.cliente)}
       </div>
 
-      <!-- LINHA 3: CONTEXTO DE EQUIPAMENTO & LOCAL -->
-      <div class="ticket-equip-meta">
-        ${item.local ? `<span class="chip-equip chip-equip-local">🏢 ${escapeHtml(item.local)}</span>` : ''}
-        <span class="chip-equip chip-equip-modelo">🖨️ ${escapeHtml(modeloLimpo)}</span>
-      </div>
-
-      <!-- LINHA 4: DEFEITO EM 1 LINHA + AÇÃO RÁPIDA -->
-      <div class="ticket-rodape">
-        <div class="ticket-defeito-preview">
-          <span>🔧 ${escapeHtml(item.defeito || 'Sem defeito informado')}</span>
-        </div>
-        <button class="btn-quick-assign" onclick="event.stopPropagation(); abrirBottomSheetPorId('${item.os}', ${isComTriagem})">
-          👤 ${isComTriagem ? 'Alterar' : 'Atribuir'}
-        </button>
+      <!-- LINHA 3: CONTEXTO TÉCNICO & DEFEITO (1 LINHA RESUMIDA) -->
+      <div class="ticket-linha-resumo">
+        <span class="resumo-chip-mod">🖨️ ${escapeHtml(modeloLimpo)}</span>
+        ${item.local ? `<span class="dot-sep-inline">·</span><span class="resumo-chip-loc">🏢 ${escapeHtml(item.local)}</span>` : ''}
+        <span class="dot-sep-inline">·</span>
+        <span class="resumo-chip-def">🔧 ${escapeHtml(item.defeito || 'Sem defeito')}</span>
       </div>
     </article>
   `;
