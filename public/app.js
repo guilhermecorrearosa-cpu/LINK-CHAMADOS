@@ -120,18 +120,19 @@ function criarItemHTML(item, isComTriagem) {
 
   return `
     <div class="item-os ${atrasadoClass} ${isExpandido ? 'expandido' : ''}" id="card-${item.os}" onclick="toggleExpandirOS('${item.os}', event)" data-status="${st}" data-texto="${(item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.local || '') + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
-      <!-- 1. RESUMO COMPACTO (SEMPRE VISÍVEL) -->
+      <!-- 1. RESUMO COMPACTO & CLEAN (SEMPRE VISÍVEL) -->
       <div class="card-resumo">
-        <!-- LINHA 1: OS + CIDADE CHAMATIVA + STATUS OFICIAL DATABIT + SLA -->
+        <!-- LINHA 1: METADADOS (OS · CIDADE · STATUS OFICIAL · SLA) -->
         <div class="resumo-topo">
           <div class="topo-esquerda">
             <span class="os-num">${escapeHtml(item.os)}</span>
-            <span class="badge-cidade">📍 ${escapeHtml(item.cidade || '')}</span>
+            <span class="dot-sep">·</span>
+            <span class="badge-cidade">${escapeHtml(item.cidade || '')}</span>
             <span class="tag-status tag-status-${st}">${escapeHtml(nomeStatus)}</span>
           </div>
           <div class="topo-direita">
             ${rightTag}
-            <span class="icone-expandir">▼</span>
+            <span class="icone-expandir">›</span>
           </div>
         </div>
 
@@ -146,10 +147,10 @@ function criarItemHTML(item, isComTriagem) {
           <span class="modelo-compacto">🖨️ ${escapeHtml(modeloLimpo)}</span>
         </div>
 
-        <!-- LINHA 3: DEFEITO DIRETO E DESTACADO -->
+        <!-- LINHA 4: DEFEITO DIRETO & ELEGANTE -->
         <div class="resumo-defeito">
-          <span class="defeito-icone">🔧</span>
-          <span class="defeito-texto">${escapeHtml(item.defeito || 'Defeito não informado')}</span>
+          <span class="defeito-rotulo">Defeito</span>
+          <span class="defeito-texto">${escapeHtml(item.defeito || 'Não informado')}</span>
         </div>
       </div>
 

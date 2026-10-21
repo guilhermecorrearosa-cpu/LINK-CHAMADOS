@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-title" content="Mil Cópias">
   <meta name="theme-color" content="#0f172a">
 
-  <link rel="stylesheet" href="style.css?v=20261019_05">
+  <link rel="stylesheet" href="style.css?v=20261020_01">
 </head>
 <body>
 
@@ -36,14 +36,16 @@
     </div>
   </div>
 
-  <!-- Abas Principais -->
-  <div class="tabs">
-    <button class="tab-btn active" id="btn-sem-triagem" onclick="trocarAba('sem-triagem')">
-      Sem Triagem <span class="badge-count badge-laranja" id="badgeSemTriagem">0</span>
-    </button>
-    <button class="tab-btn" id="btn-com-triagem" onclick="trocarAba('com-triagem')">
-      Com Triagem <span class="badge-count badge-azul" id="badgeComTriagem">0</span>
-    </button>
+  <!-- Abas Principais (Segmented Control) -->
+  <div class="tabs-container">
+    <div class="tabs">
+      <button class="tab-btn active" id="btn-sem-triagem" onclick="trocarAba('sem-triagem')">
+        Sem Triagem <span class="badge-count badge-laranja" id="badgeSemTriagem">0</span>
+      </button>
+      <button class="tab-btn" id="btn-com-triagem" onclick="trocarAba('com-triagem')">
+        Com Triagem <span class="badge-count badge-azul" id="badgeComTriagem">0</span>
+      </button>
+    </div>
   </div>
 
   <!-- Sub-filtros com Nomes Oficiais do Databit ERP -->
@@ -53,9 +55,12 @@
     <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Abertura Web (<span id="countSub01">0</span>)</button>
   </div>
 
-  <!-- Busca -->
+  <!-- Busca Clean -->
   <div class="busca">
-    <input type="text" id="campoBusca" placeholder="🔍 Buscar OS, modelo, cliente, defeito, cidade, status..." onkeyup="filtrar()">
+    <div class="busca-input-wrap">
+      <span class="busca-icone">🔍</span>
+      <input type="text" id="campoBusca" placeholder="Buscar por OS, cliente, modelo, defeito, cidade..." onkeyup="filtrar()">
+    </div>
   </div>
 
   <!-- Listas Compactas -->
@@ -100,6 +105,6 @@
   <!-- Toast de Notificação -->
   <div id="toastNotificacao" class="toast-aviso" style="display: none;"></div>
 
-  <script src="app.js?v=20261019_05"></script>
+  <script src="app.js?v=20261020_01"></script>
 </body>
 </html>

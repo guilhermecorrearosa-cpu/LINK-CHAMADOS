@@ -5,54 +5,58 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  background-color: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f8fafc;
   color: #0f172a;
   font-size: 13px;
-  line-height: 1.25;
+  line-height: 1.35;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Topo Compacto */
+/* ==========================================================
+   1. BARRA SUPERIOR (HEADER PREMIUM DARK)
+   ========================================================== */
 .topo {
   position: sticky;
   top: 0;
   background: #0f172a;
   color: #fff;
-  padding: 8px 12px;
+  padding: 9px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 .topo-esq {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
 .topo-logo {
   width: 24px;
   height: 24px;
   border-radius: 6px;
   object-fit: cover;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 .topo-titulo {
   font-size: 14.5px;
   font-weight: 700;
+  letter-spacing: -0.2px;
 }
 .topo-dir {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .btn-notificacao {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
   border-radius: 16px;
   padding: 3px 8px;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -60,7 +64,7 @@ body {
   transition: all 0.2s ease;
 }
 .btn-notificacao:active {
-  transform: scale(0.92);
+  transform: scale(0.94);
 }
 .btn-notificacao.ativo {
   background: #0284c7;
@@ -69,41 +73,56 @@ body {
 .topo-timer {
   font-size: 11px;
   color: #94a3b8;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Abas Principais */
+/* ==========================================================
+   2. ABAS PRINCIPAIS (SEGMENTED CONTROL MODERNO)
+   ========================================================== */
+.tabs-container {
+  background: #fff;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid #f1f5f9;
+  position: sticky;
+  top: 42px;
+  z-index: 99;
+}
 .tabs {
   display: flex;
-  background: #fff;
-  border-bottom: 1px solid #cbd5e1;
-  position: sticky;
-  top: 37px;
-  z-index: 99;
+  background: #f1f5f9;
+  border-radius: 9px;
+  padding: 3px;
+  gap: 3px;
 }
 .tab-btn {
   flex: 1;
-  padding: 9px 4px;
+  padding: 7px 4px;
   border: none;
-  background: none;
-  font-size: 13px;
-  font-weight: 700;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
   color: #64748b;
   text-align: center;
   cursor: pointer;
-  border-bottom: 3px solid transparent;
+  border-radius: 7px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 .tab-btn.active {
-  color: #0284c7;
-  border-bottom-color: #0284c7;
-  background: #f8fafc;
+  color: #0f172a;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 .badge-count {
   display: inline-block;
   padding: 1px 6px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 800;
-  margin-left: 3px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
 }
 .badge-laranja {
   background: #ea580c;
@@ -114,57 +133,83 @@ body {
   color: #fff;
 }
 
-/* Sub-filtros por Nome de Status Real */
+/* ==========================================================
+   3. SUB-FILTROS (CHIPS MINIMALISTAS)
+   ========================================================== */
 .sub-filtros {
   display: flex;
   gap: 6px;
-  padding: 5px 8px;
-  background: #e2e8f0;
-  border-bottom: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  background: #fff;
+  border-bottom: 1px solid #f1f5f9;
   align-items: center;
   overflow-x: auto;
   white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+.sub-filtros::-webkit-scrollbar {
+  display: none;
 }
 .sub-btn {
-  padding: 4px 9px;
-  border: 1px solid #cbd5e1;
+  padding: 4px 10px;
+  border: 1px solid #e2e8f0;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 11px;
-  font-weight: 700;
-  color: #475569;
+  font-weight: 600;
+  color: #64748b;
   cursor: pointer;
   flex-shrink: 0;
+  transition: all 0.15s ease;
 }
 .sub-btn.active {
-  background: #0284c7;
+  background: #0f172a;
   color: #fff;
-  border-color: #0284c7;
+  border-color: #0f172a;
 }
 
-/* Busca Compacta */
+/* ==========================================================
+   4. BARRA DE BUSCA (CLEAN PILL)
+   ========================================================== */
 .busca {
-  padding: 5px 8px;
+  padding: 7px 12px;
   background: #fff;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #f1f5f9;
 }
-.busca input {
+.busca-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.busca-input-wrap input {
   width: 100%;
-  padding: 6px 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  padding: 7px 12px 7px 32px;
+  border: 1px solid transparent;
+  border-radius: 20px;
   font-size: 12.5px;
   outline: none;
-  background: #f8fafc;
+  background: #f1f5f9;
+  color: #0f172a;
+  transition: all 0.2s ease;
 }
-.busca input:focus {
-  border-color: #0284c7;
+.busca-input-wrap input:focus {
   background: #fff;
+  border-color: #cbd5e1;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.08);
+}
+.busca-icone {
+  position: absolute;
+  left: 10px;
+  color: #94a3b8;
+  font-size: 12px;
+  pointer-events: none;
 }
 
-/* Lista Compacta */
+/* ==========================================================
+   5. LISTAGEM DE CHAMADOS (CARDS MODERNOS & CLEAN)
+   ========================================================== */
 .lista {
-  padding: 5px;
+  padding: 8px 10px;
   max-width: 900px;
   margin: 0 auto;
 }
@@ -175,39 +220,38 @@ body {
   display: block;
 }
 
-/* CARD DE OS ULTRA-RESUMIDO (CLICÁVEL PARA EXPANDIR) */
+/* CARD DE OS CLEAN */
 .item-os {
-  background: #fff;
-  border-radius: 6px;
-  padding: 7px 9px;
-  margin-bottom: 5px;
-  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 7px;
+  border: 1px solid #eef2f6;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.01);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 .item-os:active {
-  background: #f8fafc;
+  background: #fafbfc;
+  transform: scale(0.995);
 }
 .item-os.atrasado {
-  border-left: 4px solid #ef4444 !important;
+  border-left: 3.5px solid #ef4444;
 }
 .item-os.expandido {
-  border-color: #0284c7;
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12);
-  background: #fff;
+  border-color: #cbd5e1;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
 }
 
-/* VISÃO RESUMIDA */
 .card-resumo {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
 }
 
-/* Linha 1: OS + Cidade + Status Real + SLA + Indicador */
+/* LINHA 1: METADADOS (OS + CIDADE + STATUS + SLA) */
 .resumo-topo {
   display: flex;
   justify-content: space-between;
@@ -217,174 +261,169 @@ body {
 .topo-esquerda {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .os-num {
-  font-family: monospace;
-  font-weight: 800;
-  font-size: 13.5px;
-  color: #0284c7;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: #0f172a;
+  letter-spacing: -0.1px;
 }
-
-/* Cidade BEM CHAMATIVA */
+.dot-sep {
+  color: #cbd5e1;
+  font-size: 11px;
+}
 .badge-cidade {
-  font-size: 10.5px;
-  font-weight: 800;
-  color: #1e40af;
-  background: #dbeafe;
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid #bfdbfe;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
 }
 
-/* Badges com Nome Real do Status */
+/* Status em Pills Sutis (Sem poluição visual) */
 .tag-status {
-  font-size: 10px;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1.5px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.1px;
 }
 .tag-status-00 {
   background: #f1f5f9;
   color: #475569;
-  border: 1px solid #cbd5e1;
 }
 .tag-status-01 {
   background: #fef3c7;
   color: #92400e;
-  border: 1px solid #fde68a;
 }
 .tag-status-03 {
   background: #e0f2fe;
   color: #0369a1;
-  border: 1px solid #bae6fd;
 }
 .tag-status-04 {
   background: #dcfce7;
   color: #15803d;
-  border: 1px solid #bbf7d0;
 }
 
 .topo-direita {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
 }
 .tag-sla {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .sla-atraso {
-  background: #fee2e2;
   color: #dc2626;
+  font-weight: 700;
 }
 .sla-normal {
-  background: #f1f5f9;
-  color: #475569;
+  color: #94a3b8;
 }
 .tag-tecnico {
-  font-size: 10px;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
   text-transform: uppercase;
   color: #0f172a;
 }
 .icone-expandir {
-  font-size: 9px;
+  font-size: 11px;
   color: #94a3b8;
   transition: transform 0.2s ease;
-  margin-left: 2px;
+  display: inline-block;
 }
 .item-os.expandido .icone-expandir {
-  transform: rotate(180deg);
+  transform: rotate(90deg);
   color: #0284c7;
 }
 
-/* Linha 2: Cliente Completo */
+/* LINHA 2: CLIENTE COMPLETO */
 .cliente-linha {
   display: block;
-  line-height: 1.3;
 }
 .cliente-nome {
-  font-weight: 700;
-  font-size: 12.5px;
+  font-weight: 600;
+  font-size: 13px;
   color: #0f172a;
+  line-height: 1.3;
   word-break: break-word;
 }
 
-/* Linha 3: Local / Setor + Modelo do Equipamento */
+/* LINHA 3: LOCAL / SETOR + MODELO (MINIMALISTA) */
 .equip-local-linha {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-top: 1px;
 }
 .badge-local {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: #065f46;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  padding: 1px 6px;
-  border-radius: 4px;
+  background: #f0fdf4;
+  padding: 2px 7px;
+  border-radius: 5px;
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  max-width: 100%;
 }
 .modelo-compacto {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   color: #0369a1;
   background: #f0f9ff;
-  padding: 1px 5px;
-  border-radius: 4px;
-  border: 1px solid #bae6fd;
+  padding: 2px 7px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
-/* Linha 4: O Defeito Chamativo e Direto */
+/* LINHA 4: DEFEITO (CALLOUT ELEGANTE & LIMPO) */
 .resumo-defeito {
-  background: #fffbeb;
-  border-left: 3px solid #f59e0b;
-  border-radius: 3px;
-  padding: 3px 6px;
+  background: #f8fafc;
+  border-left: 2.5px solid #cbd5e1;
+  border-radius: 0 4px 4px 0;
+  padding: 4px 8px;
   display: flex;
-  align-items: flex-start;
-  gap: 4px;
-  margin-top: 1px;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 2px;
 }
-.defeito-icone {
-  color: #d97706;
-  font-size: 11px;
+.defeito-rotulo {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
   flex-shrink: 0;
-  margin-top: 1px;
 }
 .defeito-texto {
-  font-weight: 700;
-  font-size: 11.5px;
-  color: #92400e;
+  font-weight: 500;
+  font-size: 12px;
+  color: #334155;
   line-height: 1.3;
   word-break: break-word;
 }
 
-/* DETALHES EXPANSÍVEIS (MOSTRADOS AO CLICAR NA OS) */
+/* ==========================================================
+   6. DETALHES EXPANSÍVEIS (ACCORDION)
+   ========================================================== */
 .card-detalhes {
-  margin-top: 7px;
-  padding-top: 7px;
-  border-top: 1px dashed #cbd5e1;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   animation: fadeInDet 0.2s ease-out;
 }
 @keyframes fadeInDet {
@@ -393,26 +432,27 @@ body {
 }
 .detalhes-grid {
   font-size: 11.5px;
-  color: #334155;
+  color: #475569;
   background: #f8fafc;
-  padding: 6px 8px;
-  border-radius: 5px;
-  border: 1px solid #e2e8f0;
+  padding: 8px 10px;
+  border-radius: 7px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+}
+.detalhes-grid strong {
+  color: #1e293b;
 }
 .detalhes-grid div {
   word-break: break-word;
 }
 .equip-serie {
   font-family: monospace;
-  font-weight: 700;
-  color: #475569;
+  font-weight: 600;
+  color: #334155;
 }
 .linha-acoes-expandida {
   display: flex;
-  justify-content: flex-end;
   padding-top: 2px;
 }
 .btn-definir-tecnico {
@@ -420,28 +460,31 @@ body {
   background: #0284c7;
   color: #fff;
   border: none;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 12.5px;
-  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 9px 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.25);
+  transition: all 0.15s ease;
 }
 .btn-definir-tecnico:active {
   background: #0369a1;
   transform: scale(0.99);
 }
 
-/* MODAL MOBILE */
+/* ==========================================================
+   7. MODAL DE SELEÇÃO DE TÉCNICO (CLEAN iOS SHEET)
+   ========================================================== */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(2px);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   z-index: 200;
   display: flex;
   align-items: flex-end;
@@ -456,19 +499,19 @@ body {
 .modal-card {
   background: #fff;
   width: 100%;
-  max-width: 500px;
-  border-radius: 14px 14px 0 0;
-  padding: 16px;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+  max-width: 480px;
+  border-radius: 16px 16px 0 0;
+  padding: 18px;
+  box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  animation: slideUp 0.2s ease-out;
+  animation: slideUp 0.22s ease-out;
 }
 @media (min-width: 600px) {
   .modal-card {
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   }
 }
 @keyframes slideUp {
@@ -479,46 +522,45 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 8px;
 }
 .modal-header h3 {
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: #0f172a;
 }
 .modal-fechar {
-  background: none;
+  background: #f1f5f9;
   border: none;
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 15px;
   color: #64748b;
   cursor: pointer;
-  padding: 4px 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .modal-os-info {
   background: #f8fafc;
-  padding: 9px 11px;
-  border-radius: 7px;
-  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  border-radius: 8px;
   font-size: 12.5px;
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 .destaque-os {
-  font-family: monospace;
-  font-weight: 800;
+  font-weight: 700;
   color: #0284c7;
-  font-size: 14.5px;
+  font-size: 14px;
 }
 .modal-aviso {
   font-size: 11.5px;
   color: #0369a1;
-  background: #e0f2fe;
-  padding: 7px 9px;
+  background: #f0f9ff;
+  padding: 8px 10px;
   border-radius: 6px;
-  border-left: 3px solid #0284c7;
   line-height: 1.35;
 }
 .modal-campo {
@@ -527,83 +569,84 @@ body {
   gap: 5px;
 }
 .modal-campo label {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 12.5px;
   color: #334155;
 }
 .select-tecnico {
   width: 100%;
-  padding: 9px 11px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 7px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: 500;
   color: #0f172a;
   outline: none;
   background: #fff;
 }
 .select-tecnico:focus {
   border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
 }
 .modal-footer {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  padding-top: 8px;
-  border-top: 1px solid #e2e8f0;
+  padding-top: 6px;
 }
 .btn-cancelar {
   flex: 1;
-  padding: 10px;
-  border: 1px solid #cbd5e1;
-  background: #f1f5f9;
-  color: #475569;
-  border-radius: 6px;
-  font-weight: 700;
+  padding: 11px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  border-radius: 8px;
+  font-weight: 600;
   font-size: 12.5px;
   cursor: pointer;
 }
 .btn-confirmar {
   flex: 2;
-  padding: 10px;
+  padding: 11px;
   border: none;
   background: #0284c7;
   color: #fff;
-  border-radius: 6px;
-  font-weight: 800;
+  border-radius: 8px;
+  font-weight: 600;
   font-size: 13px;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
+  transition: all 0.15s ease;
 }
 .btn-confirmar:active {
   background: #0369a1;
 }
 .btn-confirmar:disabled {
-  background: #94a3b8;
+  background: #cbd5e1;
   cursor: not-allowed;
 }
 
-/* Toast */
+/* ==========================================================
+   8. TOAST NOTIFICAÇÃO & ESTADO VAZIO
+   ========================================================== */
 .toast-aviso {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   background: #0f172a;
   color: #fff;
-  padding: 9px 15px;
-  border-radius: 20px;
+  padding: 10px 16px;
+  border-radius: 24px;
   font-size: 12.5px;
-  font-weight: 700;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
   z-index: 300;
   max-width: 90%;
   text-align: center;
 }
-
 .vazio {
   text-align: center;
-  padding: 30px 10px;
+  padding: 40px 16px;
   color: #94a3b8;
   font-size: 13px;
 }
