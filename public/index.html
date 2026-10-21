@@ -1,110 +1,158 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Chamados - Mil Cópias</title>
+  <title>Painel 2.0 - Mil Cópias</title>
 
   <!-- PWA & Ícones Oficiais para iPhone (iOS) e Android -->
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=20261019_04">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=20261019_04">
-  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=20261019_04">
-  <link rel="manifest" href="manifest.json?v=20261019_04">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=20261020_02">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=20261020_02">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=20261020_02">
+  <link rel="manifest" href="manifest.json?v=20261020_02">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Mil Cópias">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#070a12">
 
-  <link rel="stylesheet" href="style.css?v=20261020_01">
+  <link rel="stylesheet" href="style.css?v=20261020_02">
 </head>
 <body>
 
-  <!-- Topo -->
-  <div class="topo">
+  <!-- 1. TOP BAR (FROSTED GLASS COM CONTROLES) -->
+  <header class="topo">
     <div class="topo-esq">
-      <img src="favicon.png" alt="Logo" class="topo-logo">
-      <span class="topo-titulo">Mil Cópias</span>
+      <img src="favicon.png" alt="Mil Cópias" class="topo-logo">
+      <div class="topo-brand">
+        <span class="topo-titulo">Mil Cópias</span>
+        <span class="topo-sub"><span class="pulse-dot"></span> Operação 2.0</span>
+      </div>
     </div>
     <div class="topo-dir">
-      <button id="btnNotificacao" class="btn-notificacao" onclick="solicitarPermissaoNotificacao()" title="Ativar Notificações no Celular">
+      <!-- Alternador de Tema: Dark Titanium / Clean Studio iOS -->
+      <button id="btnToggleTheme" class="btn-topo-icon" onclick="alternarTema()" title="Alternar Modo Escuro / Claro">
+        <span id="iconeTema">🌙</span>
+      </button>
+
+      <!-- Notificações no Celular -->
+      <button id="btnNotificacao" class="btn-topo-icon" onclick="solicitarPermissaoNotificacao()" title="Ativar Notificações no Celular">
         <span id="iconeSino">🔔</span>
       </button>
-      <span class="topo-timer"><span id="contador">60</span>s</span>
+
+      <!-- Contador de Atualização Automática -->
+      <span class="topo-timer-pill"><span id="contador">60</span>s</span>
+    </div>
+  </header>
+
+  <!-- 2. QUICK TRIAGE STRIP (MINI-KPIS DE 1 TOQUE) -->
+  <div class="triage-strip" id="triageStrip">
+    <button class="triage-chip active" id="chipTodas" onclick="selecionarFiltroRapido('todas')">
+      Todas <span class="chip-badge-num" id="badgeTotalGeral">0</span>
+    </button>
+    <button class="triage-chip chip-urgente" id="chipAtrasadas" onclick="selecionarFiltroRapido('atrasadas')">
+      🚨 Atrasadas <span class="chip-badge-num" id="badgeTotalAtrasadas">0</span>
+    </button>
+    <button class="triage-chip chip-web" id="chipWeb" onclick="selecionarFiltroRapido('01')">
+      ⚡ Abertura Web <span class="chip-badge-num" id="badgeTotalWeb">0</span>
+    </button>
+    <button class="triage-chip" id="chipInterna" onclick="selecionarFiltroRapido('00')">
+      🏢 Interna <span class="chip-badge-num" id="badgeTotalInterna">0</span>
+    </button>
+  </div>
+
+  <!-- 3. BARRA DE BUSCA INTELIGENTE -->
+  <div class="busca-container">
+    <div class="busca-box">
+      <span class="busca-icon-lupa">🔍</span>
+      <input type="text" id="campoBusca" placeholder="Buscar por OS, cliente, modelo, defeito, cidade..." onkeyup="filtrar()" autocomplete="off">
     </div>
   </div>
 
-  <!-- Abas Principais (Segmented Control) -->
-  <div class="tabs-container">
-    <div class="tabs">
-      <button class="tab-btn active" id="btn-sem-triagem" onclick="trocarAba('sem-triagem')">
-        Sem Triagem <span class="badge-count badge-laranja" id="badgeSemTriagem">0</span>
-      </button>
-      <button class="tab-btn" id="btn-com-triagem" onclick="trocarAba('com-triagem')">
-        Com Triagem <span class="badge-count badge-azul" id="badgeComTriagem">0</span>
-      </button>
+  <!-- 4. LISTA DE CHAMADOS EM CARDS BENTO 2.0 -->
+  <main class="lista-chamados">
+    <div id="aba-sem-triagem" class="tab-view active">
+      <div class="vazio-msg">Carregando chamados...</div>
     </div>
-  </div>
-
-  <!-- Sub-filtros com Nomes Oficiais do Databit ERP -->
-  <div class="sub-filtros" id="subFiltrosBar">
-    <button class="sub-btn active" id="btnSubTodas" onclick="filtrarSubStatus('')">Todas (<span id="countSubTodas">0</span>)</button>
-    <button class="sub-btn" id="btnSub00" onclick="filtrarSubStatus('00')">Abertura Interna (<span id="countSub00">0</span>)</button>
-    <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Abertura Web (<span id="countSub01">0</span>)</button>
-  </div>
-
-  <!-- Busca Clean -->
-  <div class="busca">
-    <div class="busca-input-wrap">
-      <span class="busca-icone">🔍</span>
-      <input type="text" id="campoBusca" placeholder="Buscar por OS, cliente, modelo, defeito, cidade..." onkeyup="filtrar()">
+    <div id="aba-com-triagem" class="tab-view">
+      <div class="vazio-msg">Carregando chamados...</div>
     </div>
-  </div>
+  </main>
 
-  <!-- Listas Compactas -->
-  <div class="lista">
-    <div id="aba-sem-triagem" class="tab-conteudo active">
-      <div class="vazio">Carregando chamados...</div>
-    </div>
-    <div id="aba-com-triagem" class="tab-conteudo">
-      <div class="vazio">Carregando chamados...</div>
-    </div>
-  </div>
+  <!-- 5. FLOATING BOTTOM DOCK (THUMB-ZONE NAVEGAÇÃO AO ALCANCE DO POLEGAR) -->
+  <nav class="bottom-dock">
+    <button class="dock-item active" id="dockSemTriagem" onclick="trocarAba('sem-triagem')">
+      ⚡ Sem Triagem <span class="dock-badge" id="dockBadgeSem">0</span>
+    </button>
+    <button class="dock-item" id="dockComTriagem" onclick="trocarAba('com-triagem')">
+      👥 Com Triagem <span class="dock-badge" id="dockBadgeCom">0</span>
+    </button>
+    <button class="dock-item dock-icon-only" onclick="focarBusca()" title="Buscar OS">
+      🔍
+    </button>
+  </nav>
 
-  <!-- Modal Definir Técnico (Mobile Friendly) -->
-  <div id="modalTecnico" class="modal-overlay" style="display: none;" onclick="fecharModalSeFora(event)">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>👤 Definir Técnico</h3>
-        <button class="modal-fechar" onclick="fecharModalTecnico()">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="modal-os-info">
-          <div><strong>OS:</strong> <span id="modalOsNum" class="destaque-os"></span></div>
-          <div><strong>Cliente:</strong> <span id="modalCliente"></span></div>
+  <!-- 6. NATIVE BOTTOM SHEET (GAVETA DESLIZANTE DE AÇÃO RÁPIDA) -->
+  <div id="sheetBackdrop" class="sheet-backdrop" onclick="fecharSheetSeFora(event)">
+    <div class="bottom-sheet" id="bottomSheet">
+      <div class="sheet-handle-bar"></div>
+      
+      <div class="sheet-header">
+        <div>
+          <span class="sheet-title-os" id="sheetOsNum">OS 000000</span>
+          <span id="sheetBadgeRota" class="badge-rota" style="margin-left: 6px;">CIDADE</span>
         </div>
-        <p class="modal-aviso">
-          ⚡ Ao definir o técnico, a OS será atualizada no Databit para o status <strong>ENCAMINHADO TECNICO (03)</strong> e aparecerá diretamente no sistema do técnico.
-        </p>
-        <div class="modal-campo">
-          <label for="selectTecnico">Selecione o Técnico:</label>
-          <select id="selectTecnico" class="select-tecnico">
-            <option value="">Carregando técnicos...</option>
-          </select>
+        <button class="sheet-btn-close" onclick="fecharBottomSheet()">✕</button>
+      </div>
+
+      <div class="sheet-cliente" id="sheetCliente">Nome do Cliente</div>
+
+      <div class="sheet-info-grid">
+        <div class="sheet-row">
+          <span class="sheet-label">Status Databit:</span>
+          <span class="sheet-val" id="sheetStatus">Abertura Interna (00)</span>
+        </div>
+        <div class="sheet-row">
+          <span class="sheet-label">Modelo Equip.:</span>
+          <span class="sheet-val" id="sheetModelo">Impressora</span>
+        </div>
+        <div class="sheet-row" id="sheetRowSerie" style="display: none;">
+          <span class="sheet-label">Nº de Série:</span>
+          <span class="sheet-val" id="sheetNumSerie">-</span>
+        </div>
+        <div class="sheet-row" id="sheetRowLocal" style="display: none;">
+          <span class="sheet-label">Local / Setor:</span>
+          <span class="sheet-val" id="sheetLocal">-</span>
+        </div>
+        <div class="sheet-row" id="sheetRowTecAtual" style="display: none;">
+          <span class="sheet-label">Técnico Atual:</span>
+          <span class="sheet-val" id="sheetTecnicoAtual">-</span>
+        </div>
+
+        <div class="sheet-defeito-card">
+          <div class="sheet-defeito-label">Defeito Informado pelo Cliente</div>
+          <div class="sheet-defeito-texto" id="sheetDefeito">Sem detalhes informados.</div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-cancelar" onclick="fecharModalTecnico()">Cancelar</button>
-        <button class="btn-confirmar" id="btnSalvarTecnico" onclick="confirmarDefinicaoTecnico()">Confirmar (Status 03)</button>
+
+      <!-- Seção de Ação Rápida de Atribuição de Técnico -->
+      <div class="sheet-assign-section">
+        <label for="sheetSelectTecnico" class="sheet-assign-label">👤 Definir / Encaminhar para Técnico:</label>
+        <select id="sheetSelectTecnico" class="sheet-select-tec">
+          <option value="">Carregando técnicos...</option>
+        </select>
+        <button id="sheetBtnConfirmar" class="sheet-btn-confirm" onclick="confirmarDefinicaoTecnicoSheet()">
+          ⚡ Confirmar Despacho (Status 03)
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Toast de Notificação -->
-  <div id="toastNotificacao" class="toast-aviso" style="display: none;"></div>
+  <!-- Toast Notificação Rápida -->
+  <div id="toastMsg" class="toast-msg" style="display: none;"></div>
 
-  <script src="app.js?v=20261020_01"></script>
+  <script src="app.js?v=20261020_02"></script>
 </body>
 </html>

@@ -1,3 +1,65 @@
+/* ==========================================================
+   PAINEL DE CHAMADOS MIL CÓPIAS - VERSÃO 2.0 (MOBILE FIRST)
+   Estilo: Dark Titanium Pro (OLED) & Clean Studio iOS
+   Ergonomia: Thumb-Zone, Bottom Dock, Bottom Sheet Nativo
+   ========================================================== */
+
+:root {
+  /* TEMA A: DARK TITANIUM PRO (OLED) - PADRÃO */
+  --bg-app: #070a12;
+  --bg-header: rgba(11, 16, 27, 0.92);
+  --bg-card: #0f1626;
+  --bg-card-hover: #162036;
+  --border-card: #1e293b;
+  --border-card-subtle: #162032;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-blue: #38bdf8;
+  --accent-cyan: #0284c7;
+  --accent-green: #10b981;
+  --accent-orange: #f97316;
+  --accent-red: #ef4444;
+  --bg-chip: #131c2e;
+  --border-chip: #1e2d45;
+  --bg-search: #0f1626;
+  --border-search: #1e293b;
+  --bg-bottom-dock: rgba(11, 16, 27, 0.92);
+  --border-bottom-dock: rgba(255, 255, 255, 0.12);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --sheet-bg: #0f1626;
+  --sheet-sub-bg: #090e18;
+  --glow-accent: rgba(56, 189, 248, 0.15);
+}
+
+[data-theme="light"] {
+  /* TEMA B: CLEAN STUDIO iOS (APPLE GLASS) */
+  --bg-app: #f4f6fa;
+  --bg-header: rgba(255, 255, 255, 0.92);
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --border-card: #e2e8f0;
+  --border-card-subtle: #edf2f7;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent-blue: #0284c7;
+  --accent-cyan: #0369a1;
+  --accent-green: #059669;
+  --accent-orange: #ea580c;
+  --accent-red: #dc2626;
+  --bg-chip: #ffffff;
+  --border-chip: #e2e8f0;
+  --bg-search: #ffffff;
+  --border-search: #e2e8f0;
+  --bg-bottom-dock: rgba(255, 255, 255, 0.94);
+  --border-bottom-dock: rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --sheet-bg: #ffffff;
+  --sheet-sub-bg: #f8fafc;
+  --glow-accent: rgba(2, 132, 199, 0.1);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -5,30 +67,34 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.35;
   min-height: 100vh;
+  padding-bottom: 85px; /* Espaço para o Bottom Dock flutuante */
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* ==========================================================
-   1. BARRA SUPERIOR (HEADER PREMIUM COM GRADIENTE DARK)
+   1. TOP BAR (FROSTED GLASS COM CONTROLES RÁPIDOS)
    ========================================================== */
 .topo {
   position: sticky;
   top: 0;
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-  color: #fff;
-  padding: 10px 15px;
+  background: var(--bg-header);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: var(--text-primary);
+  padding: 10px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   z-index: 100;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-card-subtle);
+  transition: all 0.2s ease;
 }
 .topo-esq {
   display: flex;
@@ -36,673 +102,672 @@ body {
   gap: 10px;
 }
 .topo-logo {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.topo-brand {
+  display: flex;
+  flex-direction: column;
 }
 .topo-titulo {
   font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+  line-height: 1.1;
 }
+.topo-sub {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-green);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--accent-green);
+  animation: pulseAnim 2s infinite;
+}
+@keyframes pulseAnim {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
 .topo-dir {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
-.btn-notificacao {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-radius: 20px;
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  display: inline-flex;
+.btn-topo-icon {
+  background: var(--bg-chip);
+  border: 1px solid var(--border-chip);
+  color: var(--text-primary);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-}
-.btn-notificacao:active {
-  transform: scale(0.94);
-}
-.btn-notificacao.ativo {
-  background: #0284c7;
-  border-color: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
-}
-.topo-timer {
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 3px 8px;
-  border-radius: 12px;
-}
-
-/* ==========================================================
-   2. ABAS PRINCIPAIS (SEGMENTED CONTROL MODERNO)
-   ========================================================== */
-.tabs-container {
-  background: #fff;
-  padding: 10px 14px 8px;
-  border-bottom: 1px solid #e2e8f0;
-  position: sticky;
-  top: 47px;
-  z-index: 99;
-}
-.tabs {
-  display: flex;
-  background: #edf2f7;
-  border-radius: 10px;
-  padding: 3px;
-  gap: 3px;
-}
-.tab-btn {
-  flex: 1;
-  padding: 8px 6px;
-  border: none;
-  background: transparent;
   font-size: 13px;
-  font-weight: 600;
-  color: #64748b;
-  text-align: center;
   cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  transition: all 0.15s ease;
 }
-.tab-btn.active {
-  color: #0f172a;
-  background: #fff;
-  font-weight: 700;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+.btn-topo-icon:active {
+  transform: scale(0.92);
 }
-.badge-count {
-  display: inline-block;
-  padding: 2px 7px;
-  border-radius: 10px;
+.btn-topo-icon.ativo {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 10px var(--accent-blue);
+}
+.topo-timer-pill {
   font-size: 11px;
+  color: var(--text-secondary);
   font-weight: 700;
-  line-height: 1.1;
-}
-.badge-laranja {
-  background: #ffedd5;
-  color: #c2410c;
-  border: 1px solid #fed7aa;
-}
-.badge-azul {
-  background: #e0f2fe;
-  color: #0284c7;
-  border: 1px solid #bae6fd;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-chip);
+  border: 1px solid var(--border-chip);
+  padding: 4px 9px;
+  border-radius: 14px;
 }
 
 /* ==========================================================
-   3. SUB-FILTROS (CHIPS REFINADOS)
+   2. QUICK TRIAGE STRIP (MINI-KPIS DE 1 TOQUE)
    ========================================================== */
-.sub-filtros {
+.triage-strip {
   display: flex;
-  gap: 8px;
-  padding: 8px 14px;
-  background: #fff;
-  border-bottom: 1px solid #f1f5f9;
-  align-items: center;
+  gap: 7px;
+  padding: 10px 14px 6px;
   overflow-x: auto;
   white-space: nowrap;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
-.sub-filtros::-webkit-scrollbar {
+.triage-strip::-webkit-scrollbar {
   display: none;
 }
-.sub-btn {
-  padding: 5px 12px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  border-radius: 16px;
-  font-size: 11.5px;
+.triage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: var(--bg-chip);
+  border: 1px solid var(--border-chip);
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.15s ease;
 }
-.sub-btn.active {
-  background: #0f172a;
+.triage-chip:active {
+  transform: scale(0.95);
+}
+.triage-chip.active {
+  background: var(--accent-cyan);
+  color: #ffffff;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 2px 10px var(--glow-accent);
+}
+.chip-badge-num {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+}
+.triage-chip.chip-urgente {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+.triage-chip.chip-urgente.active {
+  background: #dc2626;
+  border-color: #dc2626;
   color: #fff;
-  border-color: #0f172a;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+}
+.triage-chip.chip-web {
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+.triage-chip.chip-web.active {
+  background: #d97706;
+  border-color: #d97706;
+  color: #fff;
 }
 
 /* ==========================================================
-   4. BARRA DE BUSCA (CLEAN iOS PILL)
+   3. BARRA DE BUSCA RÁPIDA (CLEAN MOBILE INPUT)
    ========================================================== */
-.busca {
-  padding: 8px 14px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
+.busca-container {
+  padding: 6px 14px 10px;
 }
-.busca-input-wrap {
+.busca-box {
   position: relative;
   display: flex;
   align-items: center;
 }
-.busca-input-wrap input {
+.busca-box input {
   width: 100%;
-  padding: 8px 14px 8px 34px;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  padding: 9px 14px 9px 36px;
+  border: 1px solid var(--border-search);
+  border-radius: 12px;
   font-size: 13px;
   outline: none;
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--bg-search);
+  color: var(--text-primary);
   transition: all 0.2s ease;
 }
-.busca-input-wrap input:focus {
-  background: #fff;
-  border-color: #0284c7;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+.busca-box input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px var(--glow-accent);
 }
-.busca-icone {
+.busca-box input::placeholder {
+  color: var(--text-muted);
+}
+.busca-icon-lupa {
   position: absolute;
-  left: 11px;
-  color: #94a3b8;
+  left: 12px;
+  color: var(--text-muted);
   font-size: 13px;
   pointer-events: none;
 }
 
 /* ==========================================================
-   5. LISTAGEM DE CHAMADOS (CARDS ELEGANTES & HIERÁRQUICOS)
+   4. LISTA DE TICKETS (CARDS BENTO 2.0)
    ========================================================== */
-.lista {
-  padding: 10px 12px;
-  max-width: 900px;
+.lista-chamados {
+  padding: 4px 12px;
+  max-width: 800px;
   margin: 0 auto;
 }
-.tab-conteudo {
+.tab-view {
   display: none;
 }
-.tab-conteudo.active {
+.tab-view.active {
   display: block;
 }
 
-/* CARD DE OS MODERNO */
-.item-os {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 11px 13px;
+/* CARD 2.0 TICKET BENTO */
+.ticket-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  padding: 12px 14px;
   margin-bottom: 9px;
-  border: 1px solid #e2e8f0;
+  box-shadow: var(--shadow-card);
   cursor: pointer;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
 }
-.item-os:active {
-  transform: scale(0.995);
-  background: #fafbfc;
-}
-.item-os.atrasado {
-  border-left: 4px solid #ef4444;
-}
-.item-os.expandido {
-  border-color: #38bdf8;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08);
+.ticket-card:active {
+  transform: scale(0.985);
+  background: var(--bg-card-hover);
 }
 
-.card-resumo {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* Faixa lateral suave de status de atraso */
+.ticket-card.atrasado {
+  border-left: 4px solid var(--accent-red);
 }
 
-/* NÍVEL 1: Linha de Metadados (OS · CIDADE | STATUS · SLA / TÉCNICO · CHEVRON) */
-.card-linha-meta {
+/* Efeito de card selecionado */
+.ticket-card.selecionado {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 15px var(--glow-accent);
+}
+
+/* LINHA 1: Topo do Ticket (OS + ROTA DA CIDADE | STATUS + SLA) */
+.ticket-topo {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
 }
-.meta-esq {
+.ticket-origem {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.os-num {
+.ticket-os-num {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", monospace;
-  font-weight: 700;
-  font-size: 13.5px;
-  color: #0284c7;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--accent-blue);
+  background: var(--bg-chip);
+  border: 1px solid var(--border-chip);
+  padding: 2px 7px;
+  border-radius: 6px;
   letter-spacing: -0.2px;
 }
-.dot-sep {
-  color: #cbd5e1;
+
+/* Badges de Cidade com Código de Cores por Rota */
+.badge-rota {
   font-size: 10px;
-  font-weight: bold;
-}
-.badge-cidade {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #475569;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
 }
-.meta-dir {
+.rota-linhares {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+.rota-colatina {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.rota-aracruz {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.rota-jaguare {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+.rota-padrao {
+  background: var(--bg-chip);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-chip);
+}
+
+.ticket-status-sla {
   display: flex;
   align-items: center;
   gap: 5px;
-  flex-shrink: 0;
 }
-.tag-status {
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 6px;
-  letter-spacing: 0.1px;
-  white-space: nowrap;
-  line-height: 1.2;
-}
-.tag-status-00 {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-}
-.tag-status-01 {
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fde68a;
-}
-.tag-status-03 {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1px solid #bae6fd;
-}
-.tag-status-04 {
-  background: #dcfce7;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
-}
-
-.tag-sla {
+.badge-status-databit {
   font-size: 10.5px;
   font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.status-00 { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.25); }
+.status-01 { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.status-03 { background: rgba(14, 165, 233, 0.18); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.3); }
+.status-04 { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+.badge-sla-pill {
+  font-size: 10.5px;
+  font-weight: 800;
   padding: 2px 7px;
   border-radius: 6px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  line-height: 1.2;
 }
-.sla-atraso {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fee2e2;
+.sla-atrasado {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
 }
-.sla-normal {
-  background: #f8fafc;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
+.sla-ok {
+  background: var(--bg-chip);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-chip);
 }
-.tag-tecnico {
+.badge-tecnico-nome {
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: 800;
   padding: 2px 7px;
   border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
   text-transform: uppercase;
   color: #0f172a;
   white-space: nowrap;
-  line-height: 1.2;
-}
-.icone-expandir {
-  font-size: 13px;
-  color: #94a3b8;
-  transition: transform 0.2s ease;
-  display: inline-block;
-  line-height: 1;
-  margin-left: 2px;
-}
-.item-os.expandido .icone-expandir {
-  transform: rotate(90deg);
-  color: #0284c7;
 }
 
-/* NÍVEL 2: Linha do Cliente (Em Destaque Limpo e Legível) */
-.card-linha-cliente {
-  margin-bottom: 4px;
-}
-.cliente-nome {
-  font-weight: 650;
-  font-size: 13.5px;
-  color: #0f172a;
+/* LINHA 2: Cliente Hero (Grande e Legível) */
+.ticket-cliente-nome {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
   line-height: 1.35;
-  display: block;
+  margin-bottom: 6px;
   word-break: break-word;
 }
 
-/* NÍVEL 3: Linha de Contexto Técnico (Local/Setor + Modelo) */
-.card-linha-tecnica {
+/* LINHA 3: Contexto de Equipamento & Setor */
+.ticket-equip-meta {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 4px;
+  margin-bottom: 7px;
 }
-.chip-tecnico {
+.chip-equip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 11px;
+  font-weight: 600;
   padding: 2px 8px;
   border-radius: 6px;
-  line-height: 1.2;
 }
-.chip-icon {
-  font-size: 10px;
+.chip-equip-local {
+  background: var(--bg-chip);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-chip);
 }
-.chip-local {
-  background: #f8fafc;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  font-weight: 500;
-}
-.chip-modelo {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #dcfce7;
-  font-weight: 600;
+.chip-equip-modelo {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
-/* NÍVEL 4: Linha de Defeito (1 Linha Limpa com Reticências) */
-.card-linha-defeito {
+/* LINHA 4: Defeito em 1 linha limpa com botão de ação rápida */
+.ticket-rodape {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-card-subtle);
+}
+.ticket-defeito-preview {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11.5px;
-  color: #64748b;
+  color: var(--text-muted);
   overflow: hidden;
-  background: #f8fafc;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid #f1f5f9;
+  flex: 1;
 }
-.icone-defeito {
-  font-size: 11px;
-  flex-shrink: 0;
-  opacity: 0.85;
-}
-.texto-defeito {
+.ticket-defeito-preview span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
-  color: #475569;
-  flex: 1;
 }
-
-/* ==========================================================
-   6. DETALHES EXPANSÍVEIS (ACCORDION)
-   ========================================================== */
-.card-detalhes {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #e2e8f0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  animation: fadeInDet 0.22s ease-out;
-}
-@keyframes fadeInDet {
-  from { opacity: 0; transform: translateY(-3px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.detalhes-grid {
-  font-size: 12px;
-  color: #334155;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.detalhe-item {
-  word-break: break-word;
-  line-height: 1.4;
-}
-.detalhe-item strong {
-  color: #0f172a;
-  font-weight: 600;
-}
-.detalhe-defeito-box {
-  margin-top: 4px;
-}
-.texto-defeito-completo {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 7px 9px;
-  margin-top: 4px;
-  font-size: 12px;
-  color: #1e293b;
-  line-height: 1.45;
-}
-.equip-serie {
-  font-family: monospace;
-  font-weight: 600;
-  color: #0284c7;
-}
-.linha-acoes-expandida {
-  display: flex;
-  padding-top: 2px;
-}
-.btn-definir-tecnico {
-  width: 100%;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  color: #fff;
-  border: none;
-  border-radius: 9px;
-  font-weight: 600;
-  font-size: 13px;
-  padding: 11px 14px;
-  cursor: pointer;
-  display: flex;
+.btn-quick-assign {
+  background: var(--bg-chip);
+  border: 1px solid var(--border-chip);
+  color: var(--accent-blue);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 7px;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
 }
-.btn-definir-tecnico:active {
-  transform: scale(0.99);
-  background: #0369a1;
+.btn-quick-assign:active {
+  background: var(--accent-cyan);
+  color: #fff;
 }
 
 /* ==========================================================
-   7. MODAL DE SELEÇÃO DE TÉCNICO (CLEAN iOS SHEET)
+   5. BOTTOM SHEET (GAVETA DESLIZANTE NATIVA PARA AÇÕES)
    ========================================================== */
-.modal-overlay {
+.sheet-backdrop {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   z-index: 200;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
 }
-@media (min-width: 600px) {
-  .modal-overlay {
-    align-items: center;
-    padding: 20px;
-  }
+.sheet-backdrop.aberto {
+  opacity: 1;
+  visibility: visible;
 }
-.modal-card {
-  background: #fff;
+
+.bottom-sheet {
+  background: var(--sheet-bg);
   width: 100%;
-  max-width: 480px;
-  border-radius: 18px 18px 0 0;
-  padding: 20px;
-  box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.15);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  animation: slideUp 0.22s ease-out;
+  max-width: 520px;
+  border-radius: 20px 20px 0 0;
+  padding: 16px 18px 24px;
+  box-shadow: 0 -8px 35px rgba(0, 0, 0, 0.35);
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 85vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--border-card);
 }
-@media (min-width: 600px) {
-  .modal-card {
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  }
+.sheet-backdrop.aberto .bottom-sheet {
+  transform: translateY(0);
 }
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+
+.sheet-handle-bar {
+  width: 40px;
+  height: 4px;
+  background: var(--text-muted);
+  border-radius: 4px;
+  margin: 0 auto 12px;
+  opacity: 0.4;
 }
-.modal-header {
+
+.sheet-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  margin-bottom: 12px;
 }
-.modal-header h3 {
+.sheet-title-os {
   font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 800;
+  color: var(--accent-blue);
 }
-.modal-fechar {
-  background: #f1f5f9;
+.sheet-btn-close {
+  background: var(--bg-chip);
   border: none;
-  font-size: 15px;
-  color: #64748b;
-  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
   width: 30px;
   height: 30px;
   border-radius: 50%;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
 }
-.modal-fechar:active {
-  background: #e2e8f0;
-}
-.modal-os-info {
-  background: #f8fafc;
-  padding: 10px 14px;
-  border-radius: 9px;
-  border: 1px solid #e2e8f0;
-  font-size: 13px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.destaque-os {
+
+.sheet-cliente {
+  font-size: 15px;
   font-weight: 700;
-  color: #0284c7;
-  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  line-height: 1.3;
 }
-.modal-aviso {
-  font-size: 12px;
-  color: #0369a1;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  padding: 9px 12px;
-  border-radius: 8px;
-  line-height: 1.4;
-}
-.modal-campo {
+
+.sheet-info-grid {
+  background: var(--sheet-sub-bg);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  font-size: 12.5px;
+  margin-bottom: 14px;
 }
-.modal-campo label {
-  font-weight: 600;
-  font-size: 13px;
-  color: #334155;
-}
-.select-tecnico {
-  width: 100%;
-  padding: 11px 13px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #0f172a;
-  outline: none;
-  background: #fff;
-}
-.select-tecnico:focus {
-  border-color: #0284c7;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
-}
-.modal-footer {
+.sheet-row {
   display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  padding-top: 6px;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 1.35;
 }
-.btn-cancelar {
-  flex: 1;
-  padding: 11px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: #64748b;
-  border-radius: 9px;
+.sheet-label {
+  color: var(--text-muted);
   font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
 }
-.btn-confirmar {
-  flex: 2;
-  padding: 11px;
-  border: none;
+.sheet-val {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+.sheet-defeito-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 9px;
+  padding: 10px;
+  margin-top: 4px;
+}
+.sheet-defeito-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.sheet-defeito-texto {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Área de Ação: Seleção Rápida de Técnico */
+.sheet-assign-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sheet-assign-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.sheet-select-tec {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  background: var(--sheet-sub-bg);
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+  outline: none;
+}
+.sheet-btn-confirm {
+  width: 100%;
+  padding: 13px;
   background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: #fff;
-  border-radius: 9px;
-  font-weight: 600;
-  font-size: 13px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  margin-top: 4px;
 }
-.btn-confirmar:active {
-  transform: scale(0.99);
+.sheet-btn-confirm:active {
+  transform: scale(0.985);
 }
-.btn-confirmar:disabled {
-  background: #cbd5e1;
-  box-shadow: none;
+.sheet-btn-confirm:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 /* ==========================================================
-   8. TOAST NOTIFICAÇÃO & ESTADO VAZIO
+   6. FLOATING BOTTOM DOCK (THUMB-ZONE NAVEGAÇÃO 2.0)
    ========================================================== */
-.toast-aviso {
+.bottom-dock {
   position: fixed;
-  bottom: 24px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  background: #0f172a;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 24px;
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  z-index: 300;
-  max-width: 90%;
-  text-align: center;
+  background: var(--bg-bottom-dock);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border-bottom-dock);
+  border-radius: 30px;
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 150;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  max-width: 92%;
 }
-.vazio {
+.dock-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 700;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+.dock-item:active {
+  transform: scale(0.92);
+}
+.dock-item.active {
+  background: var(--accent-blue);
+  color: #ffffff;
+  box-shadow: 0 2px 12px var(--glow-accent);
+}
+.dock-badge {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-weight: 800;
+}
+.dock-icon-only {
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+/* Toast */
+.toast-msg {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--sheet-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-card);
+  padding: 10px 18px;
+  border-radius: 25px;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  z-index: 300;
+  animation: slideDownToast 0.22s ease-out;
+}
+@keyframes slideDownToast {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.vazio-msg {
   text-align: center;
-  padding: 50px 16px;
-  color: #94a3b8;
-  font-size: 13.5px;
+  padding: 60px 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
 }

@@ -1,21 +1,20 @@
 /**
- * Frontend Ultra-Compacto e Resumido para Celular (Mil Cópias)
- * - Nomes Oficiais dos Status vindos direto do Databit ERP (StatusOSController):
- *   00 = ABERTURA OS INTERNA
- *   01 = ABERTURA DE OS WEB
- *   03 = ENCAMINHADO TECNICO
- *   04 = EM ATENDIMENTO
- * - Visualização super rápida de Cidade, Cliente, Modelo e Defeito
- * - Toque na OS para expandir e acessar o botão "Definir / Transferir Técnico"
- * - Sem '#' nas OS
+ * Painel de Chamados Mil Cópias - Versão 2.0 (Mobile First)
+ * Estilo: Dark Titanium Pro (OLED) & Clean Studio iOS
+ * Inovações:
+ * 1. Thumb-Zone Floating Bottom Dock (alcance fácil do polegar)
+ * 2. Bottom Sheet Nativa para Ações e Detalhes
+ * 3. Cards Bento 2.0 com Código de Rotas por Cidade
+ * 4. Quick Triage Strip (Mini-KPIs com 1 toque)
+ * 5. Alternador de Tema Instantâneo (🌙 Dark OLED / ☀️ Clean iOS Glass)
  */
 
 let dados = { semTriagem: [], comTriagem: [] };
 let listaTecnicos = [];
 let abaAtiva = 'sem-triagem';
-let subStatusAtivo = '';
-let osSelecionadaModal = null;
-let osExpandidas = new Set();
+let filtroRapidoAtivo = 'todas';
+let osSelecionadaSheet = null;
+let osConhecidas = null;
 
 const MAPA_STATUS_DATABIT = {
   '00': 'Abertura Interna',
@@ -27,12 +26,51 @@ const MAPA_STATUS_DATABIT = {
   '08': 'Cancelada'
 };
 
+/* ==========================================================
+   1. GERENCIAMENTO DE TEMA (DARK TITANIUM / LIGHT GLASS)
+   ========================================================== */
+function iniciarTema() {
+  const temaSalvo = localStorage.getItem('milcopias_theme_2') || 'dark';
+  aplicarTema(temaSalvo);
+}
+
+function alternarTema() {
+  const temaAtual = document.documentElement.getAttribute('data-theme') || 'dark';
+  const novoTema = temaAtual === 'dark' ? 'light' : 'dark';
+  aplicarTema(novoTema);
+  localStorage.setItem('milcopias_theme_2', novoTema);
+}
+
+function aplicarTema(tema) {
+  document.documentElement.setAttribute('data-theme', tema);
+  const icone = document.getElementById('iconeTema');
+  if (icone) {
+    icone.textContent = tema === 'dark' ? '🌙' : '☀️';
+  }
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute('content', tema === 'dark' ? '#070a12' : '#f4f6fa');
+  }
+}
+
+/* ==========================================================
+   2. CONTROLE DE ROTAS POR CIDADE (CÓDIGO DE CORES)
+   ========================================================== */
+function obterClasseRota(cidade) {
+  const cid = (cidade || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (cid.includes('LINHARES')) return 'rota-linhares';
+  if (cid.includes('COLATINA')) return 'rota-colatina';
+  if (cid.includes('ARACRUZ')) return 'rota-aracruz';
+  if (cid.includes('JAGUARE')) return 'rota-jaguare';
+  return 'rota-padrao';
+}
+
 function obterNomeStatus(codigo, item) {
   if (item && item.nomeStatus) {
     return item.nomeStatus;
   }
   const cod = String(codigo || '').trim();
-  return MAPA_STATUS_DATABIT[cod] || ('STATUS ' + cod);
+  return MAPA_STATUS_DATABIT[cod] || ('Status ' + cod);
 }
 
 function simplificarModelo(nome) {
@@ -56,176 +94,57 @@ function escapeJsParam(str) {
   return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
+/* ==========================================================
+   3. NAVEGAÇÃO THUMB-ZONE & FILTROS RÁPIDOS
+   ========================================================== */
 function trocarAba(aba) {
   abaAtiva = aba;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-conteudo').forEach(c => c.classList.remove('active'));
-  const subBar = document.getElementById('subFiltrosBar');
+  
+  const dockSem = document.getElementById('dockSemTriagem');
+  const dockCom = document.getElementById('dockComTriagem');
+  const viewSem = document.getElementById('aba-sem-triagem');
+  const viewCom = document.getElementById('aba-com-triagem');
+  const strip = document.getElementById('triageStrip');
 
   if (aba === 'sem-triagem') {
-    document.getElementById('btn-sem-triagem').classList.add('active');
-    document.getElementById('aba-sem-triagem').classList.add('active');
-    if (subBar) subBar.style.display = 'flex';
+    dockSem.classList.add('active');
+    dockCom.classList.remove('active');
+    viewSem.classList.add('active');
+    viewCom.classList.remove('active');
+    if (strip) strip.style.display = 'flex';
   } else {
-    document.getElementById('btn-com-triagem').classList.add('active');
-    document.getElementById('aba-com-triagem').classList.add('active');
-    if (subBar) subBar.style.display = 'none';
+    dockSem.classList.remove('active');
+    dockCom.classList.add('active');
+    viewSem.classList.remove('active');
+    viewCom.classList.add('active');
+    if (strip) strip.style.display = 'none';
   }
+
   renderizar();
 }
 
-function filtrarSubStatus(st) {
-  subStatusAtivo = st;
-  document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
-  if (st === '00') {
-    document.getElementById('btnSub00').classList.add('active');
-  } else if (st === '01') {
-    document.getElementById('btnSub01').classList.add('active');
-  } else {
-    document.getElementById('btnSubTodas').classList.add('active');
+function selecionarFiltroRapido(tipo) {
+  filtroRapidoAtivo = tipo;
+  
+  document.querySelectorAll('.triage-chip').forEach(c => c.classList.remove('active'));
+  if (tipo === 'todas') {
+    document.getElementById('chipTodas')?.classList.add('active');
+  } else if (tipo === 'atrasadas') {
+    document.getElementById('chipAtrasadas')?.classList.add('active');
+  } else if (tipo === '01') {
+    document.getElementById('chipWeb')?.classList.add('active');
+  } else if (tipo === '00') {
+    document.getElementById('chipInterna')?.classList.add('active');
   }
+
   renderizar();
 }
 
-function toggleExpandirOS(os, event) {
-  if (event && event.target && event.target.closest('.btn-definir-tecnico')) {
-    return;
-  }
-
-  const elCard = document.getElementById(`card-${os}`);
-  const elDet = document.getElementById(`detalhes-${os}`);
-  if (!elCard || !elDet) return;
-
-  if (osExpandidas.has(os)) {
-    osExpandidas.delete(os);
-    elCard.classList.remove('expandido');
-    elDet.style.display = 'none';
-  } else {
-    osExpandidas.add(os);
-    elCard.classList.add('expandido');
-    elDet.style.display = 'flex';
-  }
-}
-
-function criarItemHTML(item, isComTriagem) {
-  const atrasadoClass = item.atrasado ? 'atrasado' : '';
-  const st = item.status || (isComTriagem ? '03' : '00');
-  const nomeStatus = obterNomeStatus(st, item);
-  const modeloLimpo = simplificarModelo(item.modelo);
-  const isExpandido = osExpandidas.has(item.os);
-
-  const rightTag = isComTriagem
-    ? `<span class="tag-tecnico" style="background-color: ${item.corTecnico || '#e2e8f0'}">${escapeHtml(item.tecnico)}</span>`
-    : `<span class="tag-sla ${parseInt(item.sla) < 0 ? 'sla-atraso' : 'sla-normal'}">${item.sla}h</span>`;
-
-  return `
-    <div class="item-os ${atrasadoClass} ${isExpandido ? 'expandido' : ''}" id="card-${item.os}" onclick="toggleExpandirOS('${item.os}', event)" data-status="${st}" data-texto="${(item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.local || '') + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
-      <!-- 1. RESUMO ELEGANTE & HIERÁRQUICO (CARD MODERNO) -->
-      <div class="card-resumo">
-        <!-- NÍVEL 1: META BAR (OS · CIDADE | STATUS · SLA/TÉCNICO · CHEVRON) -->
-        <div class="card-linha-meta">
-          <div class="meta-esq">
-            <span class="os-num">${escapeHtml(item.os)}</span>
-            <span class="dot-sep">·</span>
-            <span class="badge-cidade">${escapeHtml(item.cidade || '')}</span>
-          </div>
-          <div class="meta-dir">
-            <span class="tag-status tag-status-${st}">${escapeHtml(nomeStatus)}</span>
-            ${rightTag}
-            <span class="icone-expandir">›</span>
-          </div>
-        </div>
-
-        <!-- NÍVEL 2: CLIENTE EM DESTAQUE (LINHA PRÓPRIA, 100% LEGÍVEL) -->
-        <div class="card-linha-cliente">
-          <span class="cliente-nome">${escapeHtml(item.cliente)}</span>
-        </div>
-
-        <!-- NÍVEL 3: CONTEXTO TÉCNICO HARMONIOSO (LOCAL + MODELO) -->
-        <div class="card-linha-tecnica">
-          ${item.local ? `<span class="chip-tecnico chip-local"><span class="chip-icon">🏢</span>${escapeHtml(item.local)}</span>` : ''}
-          <span class="chip-tecnico chip-modelo"><span class="chip-icon">🖨️</span>${escapeHtml(modeloLimpo)}</span>
-        </div>
-
-        <!-- NÍVEL 4: PREVIEW DISCRETO DO DEFEITO (1 LINHA COM RETICÊNCIAS) -->
-        <div class="card-linha-defeito">
-          <span class="icone-defeito">🔧</span>
-          <span class="texto-defeito">${escapeHtml(item.defeito || 'Não informado')}</span>
-        </div>
-      </div>
-
-      <!-- 2. DETALHES EXPANSÍVEIS (MOSTRADOS AO TOCAR NA OS) -->
-      <div class="card-detalhes" id="detalhes-${item.os}" style="display: ${isExpandido ? 'flex' : 'none'};">
-        <div class="detalhes-grid">
-          <div class="detalhe-item"><strong>Status Databit:</strong> ${escapeHtml(nomeStatus)} (${st})</div>
-          <div class="detalhe-item"><strong>Modelo:</strong> ${escapeHtml(item.modelo || 'Não cadastrado')}</div>
-          ${item.numserie ? `<div class="detalhe-item"><strong>Nº de Série:</strong> <span class="equip-serie">${escapeHtml(item.numserie)}</span></div>` : ''}
-          ${item.local ? `<div class="detalhe-item"><strong>Local / Setor:</strong> ${escapeHtml(item.local)}</div>` : ''}
-          ${isComTriagem && item.tecnico && item.tecnico !== 'A Definir' ? `<div class="detalhe-item"><strong>Técnico Atual:</strong> ${escapeHtml(item.tecnico)}</div>` : ''}
-          <div class="detalhe-item detalhe-defeito-box">
-            <strong>Defeito Completo:</strong>
-            <div class="texto-defeito-completo">${escapeHtml(item.defeito || 'Não informado')}</div>
-          </div>
-        </div>
-        <div class="linha-acoes-expandida">
-          <button class="btn-definir-tecnico" onclick="event.stopPropagation(); abrirModalTecnico('${item.os}', '${escapeJsParam(item.cliente)}', '${item.codtec || ''}')">
-            👤 ${isComTriagem ? 'Alterar Técnico' : 'Definir / Transferir Técnico'}
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderizar() {
-  const termo = document.getElementById('campoBusca').value.toLowerCase().trim();
-
-  const filtrarLista = (lista, aplicarSubFiltro) => {
-    return lista.filter(item => {
-      const st = item.status || '00';
-      const nomeStatus = obterNomeStatus(st, item);
-      const txt = (item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.local || '') + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase();
-      
-      const bateTexto = !termo || txt.includes(termo);
-      const bateSub = !aplicarSubFiltro || !subStatusAtivo || st === subStatusAtivo;
-
-      return bateTexto && bateSub;
-    });
-  };
-
-  const semTriagemFiltrados = filtrarLista(dados.semTriagem, true);
-  const comTriagemFiltrados = filtrarLista(dados.comTriagem, false);
-
-  // Contagem para subfiltros
-  let qtd00 = 0;
-  let qtd01 = 0;
-  for (const it of dados.semTriagem) {
-    if (it.status === '01') qtd01++; else qtd00++;
-  }
-
-  const elSubTodas = document.getElementById('countSubTodas');
-  const elSub00 = document.getElementById('countSub00');
-  const elSub01 = document.getElementById('countSub01');
-  if (elSubTodas) elSubTodas.textContent = dados.semTriagem.length;
-  if (elSub00) elSub00.textContent = qtd00;
-  if (elSub01) elSub01.textContent = qtd01;
-
-  document.getElementById('badgeSemTriagem').textContent = dados.semTriagem.length;
-  document.getElementById('badgeComTriagem').textContent = dados.comTriagem.length;
-
-  const aba1 = document.getElementById('aba-sem-triagem');
-  const aba2 = document.getElementById('aba-com-triagem');
-
-  if (semTriagemFiltrados.length === 0) {
-    aba1.innerHTML = '<div class="vazio">Nenhum chamado encontrado com esses critérios.</div>';
-  } else {
-    aba1.innerHTML = semTriagemFiltrados.map(i => criarItemHTML(i, false)).join('');
-  }
-
-  if (comTriagemFiltrados.length === 0) {
-    aba2.innerHTML = '<div class="vazio">Nenhum chamado encontrado com esses critérios.</div>';
-  } else {
-    aba2.innerHTML = comTriagemFiltrados.map(i => criarItemHTML(i, true)).join('');
+function focarBusca() {
+  const input = document.getElementById('campoBusca');
+  if (input) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    input.focus();
   }
 }
 
@@ -233,66 +152,293 @@ function filtrar() {
   renderizar();
 }
 
-let osConhecidas = null;
+/* ==========================================================
+   4. RENDERIZAÇÃO DOS CARDS BENTO 2.0
+   ========================================================== */
+function criarCardHTML(item, isComTriagem) {
+  const atrasadoClass = item.atrasado ? 'atrasado' : '';
+  const st = item.status || (isComTriagem ? '03' : '00');
+  const nomeStatus = obterNomeStatus(st, item);
+  const modeloLimpo = simplificarModelo(item.modelo);
+  const classeRota = obterClasseRota(item.cidade);
 
-function atualizarBadgeApp(qtd) {
-  const num = parseInt(qtd, 10) || 0;
+  const rightTag = isComTriagem
+    ? `<span class="badge-tecnico-nome" style="background-color: ${item.corTecnico || '#38bdf8'}">${escapeHtml(item.tecnico)}</span>`
+    : `<span class="badge-sla-pill ${parseInt(item.sla) < 0 ? 'sla-atrasado' : 'sla-ok'}">${item.sla}h</span>`;
 
-  // 1. App Badging API oficial (iOS 16.4+ na Tela de Início e Android PWA)
-  if (num <= 0) {
-    if ('clearAppBadge' in navigator) {
-      navigator.clearAppBadge().catch(() => {});
-    } else if ('setAppBadge' in navigator) {
-      navigator.setAppBadge(0).catch(() => {});
-    }
-  } else if ('setAppBadge' in navigator) {
-    navigator.setAppBadge(num).catch(() => {});
-  }
+  const itemJsonEscapado = escapeHtml(JSON.stringify(item));
 
-  // 2. Enviar para Service Worker
-  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({
-      type: 'SET_BADGE',
-      count: num
+  return `
+    <article class="ticket-card ${atrasadoClass}" id="card-${item.os}" onclick="abrirBottomSheetPorId('${item.os}', ${isComTriagem})" data-status="${st}">
+      <!-- LINHA 1: TOPO DO TICKET -->
+      <div class="ticket-topo">
+        <div class="ticket-origem">
+          <span class="ticket-os-num">${escapeHtml(item.os)}</span>
+          <span class="badge-rota ${classeRota}">${escapeHtml(item.cidade || 'GERAL')}</span>
+        </div>
+        <div class="ticket-status-sla">
+          <span class="badge-status-databit status-${st}">${escapeHtml(nomeStatus)}</span>
+          ${rightTag}
+        </div>
+      </div>
+
+      <!-- LINHA 2: CLIENTE HERO (DESTAQUE MÁXIMO) -->
+      <div class="ticket-cliente-nome">
+        ${escapeHtml(item.cliente)}
+      </div>
+
+      <!-- LINHA 3: CONTEXTO DE EQUIPAMENTO & LOCAL -->
+      <div class="ticket-equip-meta">
+        ${item.local ? `<span class="chip-equip chip-equip-local">🏢 ${escapeHtml(item.local)}</span>` : ''}
+        <span class="chip-equip chip-equip-modelo">🖨️ ${escapeHtml(modeloLimpo)}</span>
+      </div>
+
+      <!-- LINHA 4: DEFEITO EM 1 LINHA + AÇÃO RÁPIDA -->
+      <div class="ticket-rodape">
+        <div class="ticket-defeito-preview">
+          <span>🔧 ${escapeHtml(item.defeito || 'Sem defeito informado')}</span>
+        </div>
+        <button class="btn-quick-assign" onclick="event.stopPropagation(); abrirBottomSheetPorId('${item.os}', ${isComTriagem})">
+          👤 ${isComTriagem ? 'Alterar' : 'Atribuir'}
+        </button>
+      </div>
+    </article>
+  `;
+}
+
+function renderizar() {
+  const termo = document.getElementById('campoBusca').value.toLowerCase().trim();
+
+  const filtrarLista = (lista, aplicarFiltrosRapidos) => {
+    return lista.filter(item => {
+      const st = item.status || '00';
+      const nomeStatus = obterNomeStatus(st, item);
+      const txt = (item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.local || '') + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase();
+      
+      const bateTexto = !termo || txt.includes(termo);
+      
+      if (!bateTexto) return false;
+      if (!aplicarFiltrosRapidos) return true;
+
+      if (filtroRapidoAtivo === 'atrasadas') {
+        return !!item.atrasado;
+      } else if (filtroRapidoAtivo === '01') {
+        return st === '01';
+      } else if (filtroRapidoAtivo === '00') {
+        return st === '00';
+      }
+      return true;
     });
+  };
+
+  const semTriagemFiltrados = filtrarLista(dados.semTriagem, true);
+  const comTriagemFiltrados = filtrarLista(dados.comTriagem, false);
+
+  // Atualizar Contadores da Top Strip e Bottom Dock
+  const totalSem = dados.semTriagem.length;
+  const totalCom = dados.comTriagem.length;
+  const totalAtrasadas = dados.semTriagem.filter(x => x.atrasado).length;
+  const totalWeb = dados.semTriagem.filter(x => (x.status || '00') === '01').length;
+  const totalInterna = dados.semTriagem.filter(x => (x.status || '00') === '00').length;
+
+  const elTotalGeral = document.getElementById('badgeTotalGeral');
+  if (elTotalGeral) elTotalGeral.textContent = totalSem;
+
+  const elTotalAtrasadas = document.getElementById('badgeTotalAtrasadas');
+  if (elTotalAtrasadas) elTotalAtrasadas.textContent = totalAtrasadas;
+
+  const elTotalWeb = document.getElementById('badgeTotalWeb');
+  if (elTotalWeb) elTotalWeb.textContent = totalWeb;
+
+  const elTotalInterna = document.getElementById('badgeTotalInterna');
+  if (elTotalInterna) elTotalInterna.textContent = totalInterna;
+
+  const elDockBadgeSem = document.getElementById('dockBadgeSem');
+  if (elDockBadgeSem) elDockBadgeSem.textContent = totalSem;
+
+  const elDockBadgeCom = document.getElementById('dockBadgeCom');
+  if (elDockBadgeCom) elDockBadgeCom.textContent = totalCom;
+
+  // Renderizar Container Sem Triagem
+  const cSem = document.getElementById('aba-sem-triagem');
+  if (cSem) {
+    if (semTriagemFiltrados.length === 0) {
+      cSem.innerHTML = '<div class="vazio-msg">✨ Nenhum chamado encontrado nesta categoria.</div>';
+    } else {
+      cSem.innerHTML = semTriagemFiltrados.map(item => criarCardHTML(item, false)).join('');
+    }
   }
 
-  // 3. Atualizar Título da Aba: só mostra número se houver novas não vistas
-  document.title = num > 0 ? `(${num}) Mil Cópias` : 'Mil Cópias';
+  // Renderizar Container Com Triagem
+  const cCom = document.getElementById('aba-com-triagem');
+  if (cCom) {
+    if (comTriagemFiltrados.length === 0) {
+      cCom.innerHTML = '<div class="vazio-msg">Nenhum chamado atribuído no momento.</div>';
+    } else {
+      cCom.innerHTML = comTriagemFiltrados.map(item => criarCardHTML(item, true)).join('');
+    }
+  }
 }
 
-function marcarTodasComoVistas() {
-  if (dados.semTriagem) {
-    const idsAtuais = dados.semTriagem.map(x => x.os);
-    localStorage.setItem('milcopias_os_vistas', JSON.stringify(idsAtuais));
+/* ==========================================================
+   5. NATIVE BOTTOM SHEET (AÇÕES & DETALHES RÁPIDOS)
+   ========================================================== */
+function abrirBottomSheetPorId(osNum, isComTriagem) {
+  const lista = isComTriagem ? dados.comTriagem : dados.semTriagem;
+  const item = lista.find(x => x.os === osNum) || (dados.semTriagem.concat(dados.comTriagem)).find(x => x.os === osNum);
+  if (!item) return;
+
+  osSelecionadaSheet = item;
+
+  document.getElementById('sheetOsNum').textContent = `OS ${item.os}`;
+  
+  const bRota = document.getElementById('sheetBadgeRota');
+  bRota.textContent = item.cidade || 'GERAL';
+  bRota.className = `badge-rota ${obterClasseRota(item.cidade)}`;
+
+  document.getElementById('sheetCliente').textContent = item.cliente || '';
+  document.getElementById('sheetStatus').textContent = `${obterNomeStatus(item.status, item)} (${item.status || '00'})`;
+  document.getElementById('sheetModelo').textContent = item.modelo || 'Equipamento não cadastrado';
+
+  const rowSerie = document.getElementById('sheetRowSerie');
+  if (item.numserie) {
+    rowSerie.style.display = 'flex';
+    document.getElementById('sheetNumSerie').textContent = item.numserie;
+  } else {
+    rowSerie.style.display = 'none';
   }
-  atualizarBadgeApp(0);
+
+  const rowLocal = document.getElementById('sheetRowLocal');
+  if (item.local) {
+    rowLocal.style.display = 'flex';
+    document.getElementById('sheetLocal').textContent = item.local;
+  } else {
+    rowLocal.style.display = 'none';
+  }
+
+  const rowTec = document.getElementById('sheetRowTecAtual');
+  if (isComTriagem && item.tecnico && item.tecnico !== 'A Definir') {
+    rowTec.style.display = 'flex';
+    document.getElementById('sheetTecnicoAtual').textContent = item.tecnico;
+  } else {
+    rowTec.style.display = 'none';
+  }
+
+  document.getElementById('sheetDefeito').textContent = item.defeito || 'Sem detalhes informados';
+
+  // Popular Select de Técnicos
+  popularSelectTecnicosSheet(item.codtec || '');
+
+  // Abrir Sheet com Animação Nativa
+  const backdrop = document.getElementById('sheetBackdrop');
+  backdrop.classList.add('aberto');
+  document.body.style.overflow = 'hidden';
 }
 
-// Quando o usuário abre, foca ou toca no aplicativo, limpa o badge e marca como vistas
-window.addEventListener('focus', marcarTodasComoVistas);
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
-    marcarTodasComoVistas();
+function fecharBottomSheet() {
+  const backdrop = document.getElementById('sheetBackdrop');
+  if (backdrop) backdrop.classList.remove('aberto');
+  document.body.style.overflow = '';
+  osSelecionadaSheet = null;
+}
+
+function fecharSheetSeFora(e) {
+  if (e.target && e.target.id === 'sheetBackdrop') {
+    fecharBottomSheet();
   }
-});
-window.addEventListener('click', marcarTodasComoVistas, { passive: true });
-window.addEventListener('touchstart', marcarTodasComoVistas, { passive: true });
+}
+
+function popularSelectTecnicosSheet(codtecPreselecionado = '') {
+  const select = document.getElementById('sheetSelectTecnico');
+  if (!select) return;
+
+  if (listaTecnicos.length === 0) {
+    select.innerHTML = '<option value="">Nenhum técnico disponível</option>';
+    return;
+  }
+
+  let html = '<option value="">-- Escolha o técnico --</option>';
+  for (const t of listaTecnicos) {
+    const sel = t.codigo === codtecPreselecionado ? 'selected' : '';
+    html += `<option value="${t.codigo}" ${sel}>${t.nome} (${t.codigo})</option>`;
+  }
+  select.innerHTML = html;
+}
+
+async function confirmarDefinicaoTecnicoSheet() {
+  if (!osSelecionadaSheet) return;
+
+  const select = document.getElementById('sheetSelectTecnico');
+  const codtec = select.value;
+  const nomeTecnico = select.options[select.selectedIndex]?.text || '';
+  const btn = document.getElementById('sheetBtnConfirmar');
+
+  if (!codtec) {
+    alert('Por favor, selecione um técnico na lista.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Gravando no Databit ERP...';
+
+  try {
+    const res = await fetch('/api/definir-tecnico', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        os: osSelecionadaSheet.os,
+        codtec: codtec,
+        nomeTecnico: nomeTecnico
+      })
+    });
+
+    const json = await res.json();
+    if (json.sucesso) {
+      mostrarToast(`✅ OS ${osSelecionadaSheet.os} encaminhada com sucesso!`);
+      fecharBottomSheet();
+      await carregar();
+    } else {
+      alert(`Erro ao atribuir técnico: ${json.erro || 'Falha no Databit.'}`);
+    }
+  } catch (err) {
+    alert(`Erro de comunicação com o servidor: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Confirmar Despacho (Status 03)';
+  }
+}
+
+/* ==========================================================
+   6. NOTIFICAÇÕES & ÁUDIO DE ALERTA NO CELULAR
+   ========================================================== */
+function atualizarBadgeApp(quantidade) {
+  try {
+    if ('setAppBadge' in navigator) {
+      if (quantidade > 0) {
+        navigator.setAppBadge(quantidade);
+      } else {
+        navigator.clearAppBadge();
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao atualizar badge:', e);
+  }
+}
 
 function emitirSomAlerta() {
   try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    // Tom agradável de sino duplo
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
-    
-    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
 
     osc.connect(gain);
@@ -319,9 +465,8 @@ function notificarNovasOS(novasOS) {
     ? `${itemOS.cidade} - ${itemOS.cliente}\nDefeito: ${itemOS.defeito}`
     : `Você tem ${qtd} nova(s) Ordem(ns) de Serviço pendente(s).`;
 
-  mostrarToast(`🔔 ${titulo} - ${itemOS ? itemOS.cliente : ''}`, 6000);
+  mostrarToast(`🔔 ${titulo}`, 5000);
 
-  // Disparar Notificação Nativa no celular/sistema
   if ('Notification' in window && Notification.permission === 'granted') {
     try {
       if (navigator.serviceWorker && navigator.serviceWorker.ready) {
@@ -358,7 +503,7 @@ async function solicitarPermissaoNotificacao() {
     atualizarBotaoNotificacao(perm);
 
     if (perm === 'granted') {
-      mostrarToast('🔔 Notificações ativadas! Você será alertado quando novas OS chegarem.');
+      mostrarToast('🔔 Notificações ativadas com sucesso!');
       emitirSomAlerta();
       atualizarBadgeApp(dados.semTriagem.length);
     } else if (perm === 'denied') {
@@ -386,6 +531,9 @@ function atualizarBotaoNotificacao(perm) {
   }
 }
 
+/* ==========================================================
+   7. CARREGAMENTO DE DADOS & API DATABIT
+   ========================================================== */
 async function carregar() {
   try {
     const res = await fetch('/api/chamados');
@@ -394,7 +542,6 @@ async function carregar() {
       const novosSemTriagem = json.semTriagem || [];
       const novosComTriagem = json.comTriagem || [];
 
-      // Detectar OS não vistas e novas
       const idsAtuais = novosSemTriagem.map(x => x.os);
       let vistas = [];
       try {
@@ -415,13 +562,11 @@ async function carregar() {
 
       dados.semTriagem = novosSemTriagem;
       dados.comTriagem = novosComTriagem;
-      
-      // Se o usuário está com o aplicativo aberto, todas foram visualizadas: zera o badge!
+
       if (document.visibilityState === 'visible') {
         localStorage.setItem('milcopias_os_vistas', JSON.stringify(idsAtuais));
         atualizarBadgeApp(0);
       } else {
-        // Se estiver em segundo plano, o badge mostra apenas as novas que ainda não foram vistas
         atualizarBadgeApp(naoVistas.length);
       }
 
@@ -438,97 +583,14 @@ async function carregarTecnicos() {
     const json = await res.json();
     if (json.sucesso && Array.isArray(json.tecnicos)) {
       listaTecnicos = json.tecnicos;
-      popularSelectTecnicos();
     }
   } catch (err) {
     console.error('Erro ao carregar técnicos:', err);
   }
 }
 
-function popularSelectTecnicos(codtecPreselecionado = '') {
-  const select = document.getElementById('selectTecnico');
-  if (!select) return;
-
-  if (listaTecnicos.length === 0) {
-    select.innerHTML = '<option value="">Nenhum técnico disponível</option>';
-    return;
-  }
-
-  let html = '<option value="">-- Escolha o técnico --</option>';
-  for (const t of listaTecnicos) {
-    const sel = t.codigo === codtecPreselecionado ? 'selected' : '';
-    html += `<option value="${t.codigo}" ${sel}>${t.nome} (${t.codigo})</option>`;
-  }
-  select.innerHTML = html;
-}
-
-function abrirModalTecnico(os, cliente, codtecAtual = '') {
-  osSelecionadaModal = os;
-  document.getElementById('modalOsNum').textContent = os;
-  document.getElementById('modalCliente').textContent = cliente;
-  popularSelectTecnicos(codtecAtual);
-  document.getElementById('modalTecnico').style.display = 'flex';
-}
-
-function fecharModalTecnico() {
-  document.getElementById('modalTecnico').style.display = 'none';
-  osSelecionadaModal = null;
-}
-
-function fecharModalSeFora(e) {
-  if (e.target && e.target.id === 'modalTecnico') {
-    fecharModalTecnico();
-  }
-}
-
-async function confirmarDefinicaoTecnico() {
-  const select = document.getElementById('selectTecnico');
-  const codtec = select.value;
-  const nomeTecnico = select.options[select.selectedIndex]?.text || '';
-  const btn = document.getElementById('btnSalvarTecnico');
-
-  if (!codtec) {
-    alert('Por favor, selecione um técnico na lista.');
-    return;
-  }
-
-  if (!osSelecionadaModal) {
-    fecharModalTecnico();
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = 'Gravando no Databit...';
-
-  try {
-    const res = await fetch('/api/definir-tecnico', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        os: osSelecionadaModal,
-        codtec: codtec,
-        nomeTecnico: nomeTecnico
-      })
-    });
-
-    const json = await res.json();
-    if (json.sucesso) {
-      mostrarToast(`✅ OS ${osSelecionadaModal} atribuída com sucesso! Atualizada para ENCAMINHADO TECNICO.`);
-      fecharModalTecnico();
-      await carregar();
-    } else {
-      alert(`Erro ao atribuir técnico: ${json.erro || 'Falha desconhecida.'}`);
-    }
-  } catch (err) {
-    alert(`Erro de comunicação com o servidor: ${err.message}`);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Confirmar (Status 03)';
-  }
-}
-
 function mostrarToast(msg, duracao = 4000) {
-  const t = document.getElementById('toastNotificacao');
+  const t = document.getElementById('toastMsg');
   if (!t) return;
   t.textContent = msg;
   t.style.display = 'block';
@@ -537,6 +599,7 @@ function mostrarToast(msg, duracao = 4000) {
   }, duracao);
 }
 
+// Timer de Auto-Refresh (60s)
 let tempo = 60;
 setInterval(() => {
   tempo--;
@@ -550,11 +613,13 @@ setInterval(() => {
 
 // Registrar Service Worker para PWA, Notificações e Badging
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js?v=20261019_03')
+  navigator.serviceWorker.register('sw.js?v=20261020_02')
     .then(reg => console.log('Service Worker ativo:', reg.scope))
     .catch(err => console.warn('SW:', err));
 }
 
+// Inicialização
+iniciarTema();
 atualizarBotaoNotificacao();
 carregarTecnicos();
 carregar();

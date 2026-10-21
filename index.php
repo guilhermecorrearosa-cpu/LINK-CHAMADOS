@@ -379,605 +379,1195 @@ $listaTecnicosFixa = [
     ['codigo' => '0064', 'nome' => 'BRENO INT'],
     ['codigo' => '0000', 'nome' => 'UNICO']
 ];
+
+function obterClasseRota($cidade) {
+    $cid = strtoupper(trim((string)$cidade));
+    if (strpos($cid, 'LINHARES') !== false) return 'rota-linhares';
+    if (strpos($cid, 'COLATINA') !== false) return 'rota-colatina';
+    if (strpos($cid, 'ARACRUZ') !== false) return 'rota-aracruz';
+    if (strpos($cid, 'JAGUARE') !== false || strpos($cid, 'JAGUARÉ') !== false) return 'rota-jaguare';
+    return 'rota-padrao';
+}
+
+$totalAtrasadas = 0;
+$totalWeb = 0;
+$totalInterna = 0;
+foreach ($semTriagem as $c) {
+    if (!empty($c['atrasado'])) $totalAtrasadas++;
+    if (($c['status'] ?? '00') === '01') $totalWeb++;
+    if (($c['status'] ?? '00') === '00') $totalInterna++;
+}
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta http-equiv="refresh" content="60">
-  <title>Chamados - Mil Cópias</title>
+  <title>Painel 2.0 - Mil Cópias</title>
 
   <!-- PWA & Ícones Oficiais para iPhone (iOS) e Android -->
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=20261019_04">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=20261019_04">
-  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=20261019_04">
-  <link rel="manifest" href="manifest.json?v=20261019_04">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=20261020_02">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=20261020_02">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=20261020_02">
+  <link rel="manifest" href="manifest.json?v=20261020_02">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Mil Cópias">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#070a12">
 
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f8fafc; color: #0f172a; font-size: 13px; line-height: 1.35; min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-    }
+/* ==========================================================
+   PAINEL DE CHAMADOS MIL CÓPIAS - VERSÃO 2.0 (MOBILE FIRST)
+   Estilo: Dark Titanium Pro (OLED) & Clean Studio iOS
+   Ergonomia: Thumb-Zone, Bottom Dock, Bottom Sheet Nativo
+   ========================================================== */
 
-    /* Barra Superior (Header Premium com Gradiente Dark) */
-    .topo {
-      position: sticky; top: 0; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); color: #fff;
-      padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;
-      z-index: 100; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .topo-esq { display: flex; align-items: center; gap: 10px; }
-    .topo-logo { width: 26px; height: 26px; border-radius: 7px; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.18); }
-    .topo-titulo { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
-    .topo-dir { display: flex; align-items: center; gap: 8px; }
-    .btn-notificacao {
-      background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 12px; cursor: pointer;
-      display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;
-    }
-    .btn-notificacao:active { transform: scale(0.94); }
-    .btn-notificacao.ativo { background: #0284c7; border-color: #38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
-    .topo-timer {
-      font-size: 11px; color: #94a3b8; font-weight: 600; font-variant-numeric: tabular-nums;
-      background: rgba(255, 255, 255, 0.06); padding: 3px 8px; border-radius: 12px;
-    }
+:root {
+  /* TEMA A: DARK TITANIUM PRO (OLED) - PADRÃO */
+  --bg-app: #070a12;
+  --bg-header: rgba(11, 16, 27, 0.92);
+  --bg-card: #0f1626;
+  --bg-card-hover: #162036;
+  --border-card: #1e293b;
+  --border-card-subtle: #162032;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-blue: #38bdf8;
+  --accent-cyan: #0284c7;
+  --accent-green: #10b981;
+  --accent-orange: #f97316;
+  --accent-red: #ef4444;
+  --bg-chip: #131c2e;
+  --border-chip: #1e2d45;
+  --bg-search: #0f1626;
+  --border-search: #1e293b;
+  --bg-bottom-dock: rgba(11, 16, 27, 0.92);
+  --border-bottom-dock: rgba(255, 255, 255, 0.12);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --sheet-bg: #0f1626;
+  --sheet-sub-bg: #090e18;
+  --glow-accent: rgba(56, 189, 248, 0.15);
+}
 
-    /* Abas Principais (Segmented Control Moderno) */
-    .tabs-container {
-      background: #fff; padding: 10px 14px 8px; border-bottom: 1px solid #e2e8f0;
-      position: sticky; top: 47px; z-index: 99;
-    }
-    .tabs {
-      display: flex; background: #edf2f7; border-radius: 10px; padding: 3px; gap: 3px;
-    }
-    .tab-btn {
-      flex: 1; padding: 8px 6px; border: none; background: transparent; font-size: 13px;
-      font-weight: 600; color: #64748b; text-align: center; cursor: pointer; border-radius: 8px;
-      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; justify-content: center; gap: 6px;
-    }
-    .tab-btn.active {
-      color: #0f172a; background: #fff; font-weight: 700;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
-    }
-    .badge-count {
-      display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 700; line-height: 1.1;
-    }
-    .badge-laranja { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
-    .badge-azul { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
+[data-theme="light"] {
+  /* TEMA B: CLEAN STUDIO iOS (APPLE GLASS) */
+  --bg-app: #f4f6fa;
+  --bg-header: rgba(255, 255, 255, 0.92);
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --border-card: #e2e8f0;
+  --border-card-subtle: #edf2f7;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent-blue: #0284c7;
+  --accent-cyan: #0369a1;
+  --accent-green: #059669;
+  --accent-orange: #ea580c;
+  --accent-red: #dc2626;
+  --bg-chip: #ffffff;
+  --border-chip: #e2e8f0;
+  --bg-search: #ffffff;
+  --border-search: #e2e8f0;
+  --bg-bottom-dock: rgba(255, 255, 255, 0.94);
+  --border-bottom-dock: rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --sheet-bg: #ffffff;
+  --sheet-sub-bg: #f8fafc;
+  --glow-accent: rgba(2, 132, 199, 0.1);
+}
 
-    /* Sub-filtros (Chips Refinados) */
-    .sub-filtros {
-      display: flex; gap: 8px; padding: 8px 14px; background: #fff; border-bottom: 1px solid #f1f5f9;
-      align-items: center; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;
-    }
-    .sub-filtros::-webkit-scrollbar { display: none; }
-    .sub-btn {
-      padding: 5px 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 16px;
-      font-size: 11.5px; font-weight: 600; color: #64748b; cursor: pointer; flex-shrink: 0; transition: all 0.15s ease;
-    }
-    .sub-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15); }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-    /* Barra de Busca (Clean iOS Pill) */
-    .busca { padding: 8px 14px; background: #fff; border-bottom: 1px solid #e2e8f0; }
-    .busca-input-wrap { position: relative; display: flex; align-items: center; }
-    .busca-input-wrap input {
-      width: 100%; padding: 8px 14px 8px 34px; border: 1px solid transparent; border-radius: 10px;
-      font-size: 13px; outline: none; background: #f1f5f9; color: #0f172a; transition: all 0.2s ease;
-    }
-    .busca-input-wrap input:focus {
-      background: #fff; border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
-    }
-    .busca-icone { position: absolute; left: 11px; color: #94a3b8; font-size: 13px; pointer-events: none; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.35;
+  min-height: 100vh;
+  padding-bottom: 85px; /* Espaço para o Bottom Dock flutuante */
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
 
-    /* Listagem de Chamados */
-    .lista { padding: 10px 12px; max-width: 900px; margin: 0 auto; }
-    .tab-conteudo { display: none; }
-    .tab-conteudo.active { display: block; }
+/* ==========================================================
+   1. TOP BAR (FROSTED GLASS COM CONTROLES RÁPIDOS)
+   ========================================================== */
+.topo {
+  position: sticky;
+  top: 0;
+  background: var(--bg-header);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: var(--text-primary);
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+  border-bottom: 1px solid var(--border-card-subtle);
+  transition: all 0.2s ease;
+}
+.topo-esq {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.topo-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.topo-brand {
+  display: flex;
+  flex-direction: column;
+}
+.topo-titulo {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+.topo-sub {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-green);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--accent-green);
+  animation: pulseAnim 2s infinite;
+}
+@keyframes pulseAnim {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
 
-    /* Card de OS Elegante & Moderno */
-    .item-os {
-      background: #ffffff; border-radius: 12px; padding: 11px 13px; margin-bottom: 9px;
-      border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03); user-select: none; -webkit-tap-highlight-color: transparent;
-    }
-    .item-os:active { transform: scale(0.995); background: #fafbfc; }
-    .item-os.atrasado { border-left: 4px solid #ef4444; }
-    .item-os.expandido { border-color: #38bdf8; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08); }
+.topo-dir {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.btn-topo-icon {
+  background: var(--bg-chip);
+  border: 1px solid var(--border-chip);
+  color: var(--text-primary);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-topo-icon:active {
+  transform: scale(0.92);
+}
+.btn-topo-icon.ativo {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 10px var(--accent-blue);
+}
+.topo-timer-pill {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-chip);
+  border: 1px solid var(--border-chip);
+  padding: 4px 9px;
+  border-radius: 14px;
+}
 
-    .card-resumo { display: flex; flex-direction: column; gap: 4px; }
+/* ==========================================================
+   2. QUICK TRIAGE STRIP (MINI-KPIS DE 1 TOQUE)
+   ========================================================== */
+.triage-strip {
+  display: flex;
+  gap: 7px;
+  padding: 10px 14px 6px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.triage-strip::-webkit-scrollbar {
+  display: none;
+}
+.triage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: var(--bg-chip);
+  border: 1px solid var(--border-chip);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.triage-chip:active {
+  transform: scale(0.95);
+}
+.triage-chip.active {
+  background: var(--accent-cyan);
+  color: #ffffff;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 2px 10px var(--glow-accent);
+}
+.chip-badge-num {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+}
+.triage-chip.chip-urgente {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+.triage-chip.chip-urgente.active {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+.triage-chip.chip-web {
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+.triage-chip.chip-web.active {
+  background: #d97706;
+  border-color: #d97706;
+  color: #fff;
+}
 
-    /* Nível 1: Meta Bar */
-    .card-linha-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-    .meta-esq { display: flex; align-items: center; gap: 6px; }
-    .os-num {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", monospace;
-      font-weight: 700; font-size: 13.5px; color: #0284c7; letter-spacing: -0.2px;
-    }
-    .dot-sep { color: #cbd5e1; font-size: 10px; font-weight: bold; }
-    .badge-cidade {
-      font-size: 10.5px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.4px;
-    }
-    .meta-dir { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-    .tag-status {
-      font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 6px; letter-spacing: 0.1px;
-      white-space: nowrap; line-height: 1.2;
-    }
-    .tag-status-00 { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
-    .tag-status-01 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-    .tag-status-03 { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
-    .tag-status-04 { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+/* ==========================================================
+   3. BARRA DE BUSCA RÁPIDA (CLEAN MOBILE INPUT)
+   ========================================================== */
+.busca-container {
+  padding: 6px 14px 10px;
+}
+.busca-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.busca-box input {
+  width: 100%;
+  padding: 9px 14px 9px 36px;
+  border: 1px solid var(--border-search);
+  border-radius: 12px;
+  font-size: 13px;
+  outline: none;
+  background: var(--bg-search);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+.busca-box input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px var(--glow-accent);
+}
+.busca-box input::placeholder {
+  color: var(--text-muted);
+}
+.busca-icon-lupa {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  pointer-events: none;
+}
 
-    .tag-sla {
-      font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; font-variant-numeric: tabular-nums;
-      white-space: nowrap; line-height: 1.2;
-    }
-    .sla-atraso { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
-    .sla-normal { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
-    .tag-tecnico {
-      font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.06);
-      text-transform: uppercase; color: #0f172a; white-space: nowrap; line-height: 1.2;
-    }
-    .icone-expandir { font-size: 13px; color: #94a3b8; transition: transform 0.2s ease; display: inline-block; line-height: 1; margin-left: 2px; }
-    .item-os.expandido .icone-expandir { transform: rotate(90deg); color: #0284c7; }
+/* ==========================================================
+   4. LISTA DE TICKETS (CARDS BENTO 2.0)
+   ========================================================== */
+.lista-chamados {
+  padding: 4px 12px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.tab-view {
+  display: none;
+}
+.tab-view.active {
+  display: block;
+}
 
-    /* Nível 2: Cliente em Destaque */
-    .card-linha-cliente { margin-bottom: 4px; }
-    .cliente-nome {
-      font-weight: 650; font-size: 13.5px; color: #0f172a; line-height: 1.35; display: block; word-break: break-word;
-    }
+/* CARD 2.0 TICKET BENTO */
+.ticket-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 9px;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.ticket-card:active {
+  transform: scale(0.985);
+  background: var(--bg-card-hover);
+}
 
-    /* Nível 3: Contexto Técnico */
-    .card-linha-tecnica { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
-    .chip-tecnico {
-      display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 6px; line-height: 1.2;
-    }
-    .chip-icon { font-size: 10px; }
-    .chip-local { background: #f8fafc; color: #334155; border: 1px solid #e2e8f0; font-weight: 500; }
-    .chip-modelo { background: #f0fdf4; color: #166534; border: 1px solid #dcfce7; font-weight: 600; }
+/* Faixa lateral suave de status de atraso */
+.ticket-card.atrasado {
+  border-left: 4px solid var(--accent-red);
+}
 
-    /* Nível 4: Defeito em 1 Linha com Reticências */
-    .card-linha-defeito {
-      display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #64748b;
-      overflow: hidden; background: #f8fafc; padding: 4px 8px; border-radius: 6px; border: 1px solid #f1f5f9;
-    }
-    .icone-defeito { font-size: 11px; flex-shrink: 0; opacity: 0.85; }
-    .texto-defeito {
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: #475569; flex: 1;
-    }
+/* Efeito de card selecionado */
+.ticket-card.selecionado {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 15px var(--glow-accent);
+}
 
-    /* Detalhes Expansíveis */
-    .card-detalhes {
-      margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0;
-      display: flex; flex-direction: column; gap: 8px; animation: fadeInDet 0.22s ease-out;
-    }
-    @keyframes fadeInDet {
-      from { opacity: 0; transform: translateY(-3px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .detalhes-grid {
-      font-size: 12px; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 12px;
-      border-radius: 8px; display: flex; flex-direction: column; gap: 5px;
-    }
-    .detalhe-item { word-break: break-word; line-height: 1.4; }
-    .detalhe-item strong { color: #0f172a; font-weight: 600; }
-    .detalhe-defeito-box { margin-top: 4px; }
-    .texto-defeito-completo {
-      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px 9px;
-      margin-top: 4px; font-size: 12px; color: #1e293b; line-height: 1.45;
-    }
-    .equip-serie { font-family: monospace; font-weight: 600; color: #0284c7; }
-    .linha-acoes-expandida { display: flex; padding-top: 2px; }
-    .btn-definir-tecnico {
-      width: 100%; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff;
-      border: none; border-radius: 9px; font-weight: 600; font-size: 13px; padding: 11px 14px;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-      transition: all 0.15s ease; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
-    }
-    .btn-definir-tecnico:active { transform: scale(0.99); background: #0369a1; }
+/* LINHA 1: Topo do Ticket (OS + ROTA DA CIDADE | STATUS + SLA) */
+.ticket-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.ticket-origem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ticket-os-num {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", monospace;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--accent-blue);
+  background: var(--bg-chip);
+  border: 1px solid var(--border-chip);
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: -0.2px;
+}
 
-    /* Modal iOS Sheet */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-      z-index: 200; display: flex; align-items: flex-end; justify-content: center;
-    }
-    @media (min-width: 600px) { .modal-overlay { align-items: center; padding: 20px; } }
-    .modal-card {
-      background: #fff; width: 100%; max-width: 480px; border-radius: 18px 18px 0 0;
-      padding: 20px; box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; gap: 14px;
-      animation: slideUp 0.22s ease-out;
-    }
-    @media (min-width: 600px) { .modal-card { border-radius: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); } }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; }
-    .modal-header h3 { font-size: 16px; font-weight: 700; color: #0f172a; }
-    .modal-fechar {
-      background: #f1f5f9; border: none; font-size: 15px; color: #64748b; cursor: pointer;
-      width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s ease;
-    }
-    .modal-fechar:active { background: #e2e8f0; }
-    .modal-os-info {
-      background: #f8fafc; padding: 10px 14px; border-radius: 9px; border: 1px solid #e2e8f0;
-      font-size: 13px; display: flex; flex-direction: column; gap: 4px;
-    }
-    .destaque-os { font-weight: 700; color: #0284c7; font-size: 14px; }
-    .modal-aviso {
-      font-size: 12px; color: #0369a1; background: #f0f9ff; border: 1px solid #bae6fd;
-      padding: 9px 12px; border-radius: 8px; line-height: 1.4;
-    }
-    .modal-campo { display: flex; flex-direction: column; gap: 6px; }
-    .modal-campo label { font-weight: 600; font-size: 13px; color: #334155; }
-    .select-tecnico {
-      width: 100%; padding: 11px 13px; border: 1px solid #cbd5e1; border-radius: 9px;
-      font-size: 13.5px; font-weight: 500; color: #0f172a; outline: none; background: #fff;
-    }
-    .select-tecnico:focus { border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12); }
-    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding-top: 6px; }
-    .btn-cancelar {
-      flex: 1; padding: 11px; border: 1px solid #e2e8f0; background: #fff; color: #64748b;
-      border-radius: 9px; font-weight: 600; font-size: 13px; cursor: pointer;
-    }
-    .btn-confirmar {
-      flex: 2; padding: 11px; border: none; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      color: #fff; border-radius: 9px; font-weight: 600; font-size: 13px; cursor: pointer;
-      transition: all 0.15s ease; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
-    }
-    .btn-confirmar:active { transform: scale(0.99); }
-    .btn-confirmar:disabled { background: #cbd5e1; box-shadow: none; cursor: not-allowed; }
+/* Badges de Cidade com Código de Cores por Rota */
+.badge-rota {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.rota-linhares {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+.rota-colatina {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.rota-aracruz {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.rota-jaguare {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+.rota-padrao {
+  background: var(--bg-chip);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-chip);
+}
 
-    /* Toast */
-    .toast-aviso {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-      background: #0f172a; color: #fff; padding: 10px 18px; border-radius: 24px;
-      font-size: 13px; font-weight: 600; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-      z-index: 300; max-width: 90%; text-align: center;
-    }
+.ticket-status-sla {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.badge-status-databit {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.status-00 { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.25); }
+.status-01 { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.status-03 { background: rgba(14, 165, 233, 0.18); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.3); }
+.status-04 { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
 
-    .vazio { text-align: center; padding: 50px 16px; color: #94a3b8; font-size: 13.5px; }
+.badge-sla-pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sla-atrasado {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+.sla-ok {
+  background: var(--bg-chip);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-chip);
+}
+.badge-tecnico-nome {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+/* LINHA 2: Cliente Hero (Grande e Legível) */
+.ticket-cliente-nome {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.35;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+/* LINHA 3: Contexto de Equipamento & Setor */
+.ticket-equip-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 7px;
+}
+.chip-equip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.chip-equip-local {
+  background: var(--bg-chip);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-chip);
+}
+.chip-equip-modelo {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* LINHA 4: Defeito em 1 linha limpa com botão de ação rápida */
+.ticket-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-card-subtle);
+}
+.ticket-defeito-preview {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  overflow: hidden;
+  flex: 1;
+}
+.ticket-defeito-preview span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.btn-quick-assign {
+  background: var(--bg-chip);
+  border: 1px solid var(--border-chip);
+  color: var(--accent-blue);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-quick-assign:active {
+  background: var(--accent-cyan);
+  color: #fff;
+}
+
+/* ==========================================================
+   5. BOTTOM SHEET (GAVETA DESLIZANTE NATIVA PARA AÇÕES)
+   ========================================================== */
+.sheet-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+}
+.sheet-backdrop.aberto {
+  opacity: 1;
+  visibility: visible;
+}
+
+.bottom-sheet {
+  background: var(--sheet-bg);
+  width: 100%;
+  max-width: 520px;
+  border-radius: 20px 20px 0 0;
+  padding: 16px 18px 24px;
+  box-shadow: 0 -8px 35px rgba(0, 0, 0, 0.35);
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 85vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--border-card);
+}
+.sheet-backdrop.aberto .bottom-sheet {
+  transform: translateY(0);
+}
+
+.sheet-handle-bar {
+  width: 40px;
+  height: 4px;
+  background: var(--text-muted);
+  border-radius: 4px;
+  margin: 0 auto 12px;
+  opacity: 0.4;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.sheet-title-os {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent-blue);
+}
+.sheet-btn-close {
+  background: var(--bg-chip);
+  border: none;
+  font-size: 14px;
+  color: var(--text-secondary);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheet-cliente {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+
+.sheet-info-grid {
+  background: var(--sheet-sub-bg);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+  margin-bottom: 14px;
+}
+.sheet-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 1.35;
+}
+.sheet-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.sheet-val {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+.sheet-defeito-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 9px;
+  padding: 10px;
+  margin-top: 4px;
+}
+.sheet-defeito-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.sheet-defeito-texto {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Área de Ação: Seleção Rápida de Técnico */
+.sheet-assign-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sheet-assign-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.sheet-select-tec {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  background: var(--sheet-sub-bg);
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+  outline: none;
+}
+.sheet-btn-confirm {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  margin-top: 4px;
+}
+.sheet-btn-confirm:active {
+  transform: scale(0.985);
+}
+.sheet-btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==========================================================
+   6. FLOATING BOTTOM DOCK (THUMB-ZONE NAVEGAÇÃO 2.0)
+   ========================================================== */
+.bottom-dock {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-bottom-dock);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border-bottom-dock);
+  border-radius: 30px;
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 150;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  max-width: 92%;
+}
+.dock-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 700;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+.dock-item:active {
+  transform: scale(0.92);
+}
+.dock-item.active {
+  background: var(--accent-blue);
+  color: #ffffff;
+  box-shadow: 0 2px 12px var(--glow-accent);
+}
+.dock-badge {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-weight: 800;
+}
+.dock-icon-only {
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+/* Toast */
+.toast-msg {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--sheet-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-card);
+  padding: 10px 18px;
+  border-radius: 25px;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  z-index: 300;
+  animation: slideDownToast 0.22s ease-out;
+}
+@keyframes slideDownToast {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.vazio-msg {
+  text-align: center;
+  padding: 60px 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
   </style>
 </head>
 <body>
 
-  <!-- Topo -->
-  <div class="topo">
+  <!-- 1. TOP BAR -->
+  <header class="topo">
     <div class="topo-esq">
-      <img src="favicon.png" alt="Logo" class="topo-logo">
-      <span class="topo-titulo">Mil Cópias</span>
+      <img src="favicon.png" alt="Mil Cópias" class="topo-logo">
+      <div class="topo-brand">
+        <span class="topo-titulo">Mil Cópias</span>
+        <span class="topo-sub"><span class="pulse-dot"></span> Operação 2.0</span>
+      </div>
     </div>
     <div class="topo-dir">
-      <button id="btnNotificacao" class="btn-notificacao" onclick="solicitarPermissaoNotificacao()" title="Ativar Notificações no Celular">
+      <button id="btnToggleTheme" class="btn-topo-icon" onclick="alternarTema()" title="Alternar Modo Escuro / Claro">
+        <span id="iconeTema">🌙</span>
+      </button>
+      <button id="btnNotificacao" class="btn-topo-icon" onclick="solicitarPermissaoNotificacao()" title="Ativar Notificações no Celular">
         <span id="iconeSino">🔔</span>
       </button>
-      <span class="topo-timer"><span id="contador">60</span>s</span>
+      <span class="topo-timer-pill"><span id="contador">60</span>s</span>
+    </div>
+  </header>
+
+  <!-- 2. QUICK TRIAGE STRIP (MINI-KPIS) -->
+  <div class="triage-strip" id="triageStrip">
+    <button class="triage-chip active" id="chipTodas" onclick="selecionarFiltroRapido('todas')">
+      Todas <span class="chip-badge-num"><?= count($semTriagem) ?></span>
+    </button>
+    <button class="triage-chip chip-urgente" id="chipAtrasadas" onclick="selecionarFiltroRapido('atrasadas')">
+      🚨 Atrasadas <span class="chip-badge-num"><?= $totalAtrasadas ?></span>
+    </button>
+    <button class="triage-chip chip-web" id="chipWeb" onclick="selecionarFiltroRapido('01')">
+      ⚡ Abertura Web <span class="chip-badge-num"><?= $totalWeb ?></span>
+    </button>
+    <button class="triage-chip" id="chipInterna" onclick="selecionarFiltroRapido('00')">
+      🏢 Interna <span class="chip-badge-num"><?= $totalInterna ?></span>
+    </button>
+  </div>
+
+  <!-- 3. BUSCA RÁPIDA -->
+  <div class="busca-container">
+    <div class="busca-box">
+      <span class="busca-icon-lupa">🔍</span>
+      <input type="text" id="campoBusca" placeholder="Buscar por OS, cliente, modelo, defeito, cidade..." onkeyup="filtrar()" autocomplete="off">
     </div>
   </div>
 
-  <!-- Abas Principais (Segmented Control) -->
-  <div class="tabs-container">
-    <div class="tabs">
-      <button class="tab-btn active" id="tabBtnSem" onclick="trocarAba('sem-triagem')">
-        Sem Triagem <span class="badge-count badge-laranja"><?= count($semTriagem) ?></span>
-      </button>
-      <button class="tab-btn" id="tabBtnCom" onclick="trocarAba('com-triagem')">
-        Com Triagem <span class="badge-count badge-azul"><?= count($comTriagem) ?></span>
-      </button>
-    </div>
-  </div>
+  <!-- 4. LISTA DE TICKETS BENTO 2.0 -->
+  <main class="lista-chamados">
 
-  <!-- Sub-filtros por Nomes Oficiais do Databit ERP -->
-  <div class="sub-filtros" id="subFiltrosBar">
-    <button class="sub-btn active" id="btnSubTodas" onclick="filtrarSubStatus('')">Todas (<?= count($semTriagem) ?>)</button>
-    <button class="sub-btn" id="btnSub00" onclick="filtrarSubStatus('00')">Abertura Interna (<?= $qtdStatus00 ?>)</button>
-    <button class="sub-btn" id="btnSub01" onclick="filtrarSubStatus('01')">Abertura Web (<?= $qtdStatus01 ?>)</button>
-  </div>
-
-  <!-- Busca Clean -->
-  <div class="busca">
-    <div class="busca-input-wrap">
-      <span class="busca-icone">🔍</span>
-      <input type="text" id="campoBusca" placeholder="Buscar por OS, cliente, modelo, defeito, cidade..." onkeyup="filtrar()">
-    </div>
-  </div>
-
-  <!-- Lista Compacta -->
-  <div class="lista">
-
-    <!-- Aba 1: Sem Triagem -->
-    <div id="aba-sem-triagem" class="tab-conteudo active">
+    <!-- Aba Sem Triagem -->
+    <div id="aba-sem-triagem" class="tab-view active">
       <?php if (empty($semTriagem)): ?>
-        <div class="vazio">Nenhum chamado sem triagem.</div>
+        <div class="vazio-msg">✨ Nenhum chamado pendente sem triagem.</div>
       <?php else: ?>
         <?php foreach ($semTriagem as $c): ?>
-          <?php $nomeSt = obterNomeStatus($c['status']); $modLimpo = simplificarModelo($c['modelo']); ?>
-          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['local']} {$c['modelo']} {$c['numserie']} {$c['defeito']}") ?>">
-            <!-- 1. RESUMO ELEGANTE & HIERÁRQUICO (CARD MODERNO) -->
-            <div class="card-resumo">
-              <!-- NÍVEL 1: META BAR (OS · CIDADE | STATUS · SLA · CHEVRON) -->
-              <div class="card-linha-meta">
-                <div class="meta-esq">
-                  <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
-                  <span class="dot-sep">·</span>
-                  <span class="badge-cidade"><?= htmlspecialchars($c['cidade']) ?></span>
-                </div>
-                <div class="meta-dir">
-                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
-                  <span class="tag-sla <?= (int)$c['sla'] < 0 ? 'sla-atraso' : 'sla-normal' ?>"><?= $c['sla'] ?>h</span>
-                  <span class="icone-expandir">›</span>
-                </div>
+          <?php 
+            $nomeSt = obterNomeStatus($c['status']); 
+            $modLimpo = simplificarModelo($c['modelo']);
+            $classeRota = obterClasseRota($c['cidade']);
+          ?>
+          <article class="ticket-card <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="abrirBottomSheet('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['cidade']) ?>', '<?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)', '<?= addslashes($c['modelo']) ?>', '<?= htmlspecialchars($c['numserie']) ?>', '<?= addslashes($c['local']) ?>', '', '<?= addslashes($c['defeito'] ?: 'Não informado') ?>', '<?= htmlspecialchars($c['codtec']) ?>')" data-status="<?= htmlspecialchars($c['status']) ?>" data-atrasado="<?= $c['atrasado'] ? '1' : '0' ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['local']} {$c['modelo']} {$c['numserie']} {$c['defeito']}") ?>">
+            <div class="ticket-topo">
+              <div class="ticket-origem">
+                <span class="ticket-os-num"><?= htmlspecialchars($c['os']) ?></span>
+                <span class="badge-rota <?= $classeRota ?>"><?= htmlspecialchars($c['cidade'] ?: 'GERAL') ?></span>
               </div>
-
-              <!-- NÍVEL 2: CLIENTE EM DESTAQUE (LINHA PRÓPRIA, 100% LEGÍVEL) -->
-              <div class="card-linha-cliente">
-                <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
-              </div>
-
-              <!-- NÍVEL 3: CONTEXTO TÉCNICO HARMONIOSO (LOCAL + MODELO) -->
-              <div class="card-linha-tecnica">
-                <?php if (!empty($c['local'])): ?>
-                  <span class="chip-tecnico chip-local"><span class="chip-icon">🏢</span><?= htmlspecialchars($c['local']) ?></span>
-                <?php endif; ?>
-                <span class="chip-tecnico chip-modelo"><span class="chip-icon">🖨️</span><?= htmlspecialchars($modLimpo) ?></span>
-              </div>
-
-              <!-- NÍVEL 4: PREVIEW DISCRETO DO DEFEITO (1 LINHA COM RETICÊNCIAS) -->
-              <div class="card-linha-defeito">
-                <span class="icone-defeito">🔧</span>
-                <span class="texto-defeito"><?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></span>
+              <div class="ticket-status-sla">
+                <span class="badge-status-databit status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
+                <span class="badge-sla-pill <?= (int)$c['sla'] < 0 ? 'sla-atrasado' : 'sla-ok' ?>"><?= $c['sla'] ?>h</span>
               </div>
             </div>
 
-            <!-- 2. DETALHES COMPLETOS (AO TOCAR NA OS) -->
-            <div class="card-detalhes" id="detalhes-<?= htmlspecialchars($c['os']) ?>" style="display: none;">
-              <div class="detalhes-grid">
-                <div class="detalhe-item"><strong>Status Databit:</strong> <?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)</div>
-                <div class="detalhe-item"><strong>Modelo:</strong> <?= htmlspecialchars($c['modelo']) ?></div>
-                <?php if (!empty($c['numserie'])): ?>
-                  <div class="detalhe-item"><strong>Nº de Série:</strong> <span class="equip-serie"><?= htmlspecialchars($c['numserie']) ?></span></div>
-                <?php endif; ?>
-                <?php if (!empty($c['local'])): ?>
-                  <div class="detalhe-item"><strong>Local / Setor:</strong> <?= htmlspecialchars($c['local']) ?></div>
-                <?php endif; ?>
-                <div class="detalhe-item detalhe-defeito-box">
-                  <strong>Defeito Completo:</strong>
-                  <div class="texto-defeito-completo"><?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></div>
-                </div>
-              </div>
-              <div class="linha-acoes-expandida">
-                <button class="btn-definir-tecnico" onclick="event.stopPropagation(); abrirModalTecnico('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
-                  👤 Definir / Transferir Técnico
-                </button>
-              </div>
+            <div class="ticket-cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
+
+            <div class="ticket-equip-meta">
+              <?php if (!empty($c['local'])): ?>
+                <span class="chip-equip chip-equip-local">🏢 <?= htmlspecialchars($c['local']) ?></span>
+              <?php endif; ?>
+              <span class="chip-equip chip-equip-modelo">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
             </div>
-          </div>
+
+            <div class="ticket-rodape">
+              <div class="ticket-defeito-preview">
+                <span>🔧 <?= htmlspecialchars($c['defeito'] ?: 'Sem detalhes informados') ?></span>
+              </div>
+              <button class="btn-quick-assign" onclick="event.stopPropagation(); abrirBottomSheet('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['cidade']) ?>', '<?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)', '<?= addslashes($c['modelo']) ?>', '<?= htmlspecialchars($c['numserie']) ?>', '<?= addslashes($c['local']) ?>', '', '<?= addslashes($c['defeito'] ?: 'Não informado') ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
+                👤 Atribuir
+              </button>
+            </div>
+          </article>
         <?php endforeach; ?>
       <?php endif; ?>
     </div>
 
-    <!-- Aba 2: Com Triagem -->
-    <div id="aba-com-triagem" class="tab-conteudo">
+    <!-- Aba Com Triagem -->
+    <div id="aba-com-triagem" class="tab-view">
       <?php if (empty($comTriagem)): ?>
-        <div class="vazio">Nenhum chamado com triagem.</div>
+        <div class="vazio-msg">Nenhum chamado atribuído no momento.</div>
       <?php else: ?>
         <?php foreach ($comTriagem as $c): ?>
-          <?php $nomeSt = obterNomeStatus($c['status']); $modLimpo = simplificarModelo($c['modelo']); ?>
-          <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['local']} {$c['modelo']} {$c['numserie']} {$c['tecnico']} {$c['defeito']}") ?>">
-            <!-- 1. RESUMO ELEGANTE & HIERÁRQUICO (CARD MODERNO) -->
-            <div class="card-resumo">
-              <!-- NÍVEL 1: META BAR (OS · CIDADE | STATUS · TÉCNICO · CHEVRON) -->
-              <div class="card-linha-meta">
-                <div class="meta-esq">
-                  <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
-                  <span class="dot-sep">·</span>
-                  <span class="badge-cidade"><?= htmlspecialchars($c['cidade']) ?></span>
-                </div>
-                <div class="meta-dir">
-                  <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
-                  <span class="tag-tecnico" style="background-color: <?= htmlspecialchars($c['corTecnico']) ?>">
-                    <?= htmlspecialchars($c['tecnico']) ?>
-                  </span>
-                  <span class="icone-expandir">›</span>
-                </div>
+          <?php 
+            $nomeSt = obterNomeStatus($c['status']); 
+            $modLimpo = simplificarModelo($c['modelo']);
+            $classeRota = obterClasseRota($c['cidade']);
+          ?>
+          <article class="ticket-card <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="abrirBottomSheet('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['cidade']) ?>', '<?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)', '<?= addslashes($c['modelo']) ?>', '<?= htmlspecialchars($c['numserie']) ?>', '<?= addslashes($c['local']) ?>', '<?= addslashes($c['tecnico']) ?>', '<?= addslashes($c['defeito'] ?: 'Não informado') ?>', '<?= htmlspecialchars($c['codtec']) ?>')" data-status="<?= htmlspecialchars($c['status']) ?>" data-atrasado="<?= $c['atrasado'] ? '1' : '0' ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['local']} {$c['modelo']} {$c['numserie']} {$c['tecnico']} {$c['defeito']}") ?>">
+            <div class="ticket-topo">
+              <div class="ticket-origem">
+                <span class="ticket-os-num"><?= htmlspecialchars($c['os']) ?></span>
+                <span class="badge-rota <?= $classeRota ?>"><?= htmlspecialchars($c['cidade'] ?: 'GERAL') ?></span>
               </div>
-
-              <!-- NÍVEL 2: CLIENTE EM DESTAQUE (LINHA PRÓPRIA, 100% LEGÍVEL) -->
-              <div class="card-linha-cliente">
-                <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
-              </div>
-
-              <!-- NÍVEL 3: CONTEXTO TÉCNICO HARMONIOSO (LOCAL + MODELO) -->
-              <div class="card-linha-tecnica">
-                <?php if (!empty($c['local'])): ?>
-                  <span class="chip-tecnico chip-local"><span class="chip-icon">🏢</span><?= htmlspecialchars($c['local']) ?></span>
-                <?php endif; ?>
-                <span class="chip-tecnico chip-modelo"><span class="chip-icon">🖨️</span><?= htmlspecialchars($modLimpo) ?></span>
-              </div>
-
-              <!-- NÍVEL 4: PREVIEW DISCRETO DO DEFEITO (1 LINHA COM RETICÊNCIAS) -->
-              <div class="card-linha-defeito">
-                <span class="icone-defeito">🔧</span>
-                <span class="texto-defeito"><?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></span>
+              <div class="ticket-status-sla">
+                <span class="badge-status-databit status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
+                <span class="badge-tecnico-nome" style="background-color: <?= htmlspecialchars($c['corTecnico']) ?>">
+                  <?= htmlspecialchars($c['tecnico']) ?>
+                </span>
               </div>
             </div>
 
-            <!-- 2. DETALHES COMPLETOS (AO TOCAR NA OS) -->
-            <div class="card-detalhes" id="detalhes-<?= htmlspecialchars($c['os']) ?>" style="display: none;">
-              <div class="detalhes-grid">
-                <div class="detalhe-item"><strong>Status Databit:</strong> <?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)</div>
-                <div class="detalhe-item"><strong>Modelo:</strong> <?= htmlspecialchars($c['modelo']) ?></div>
-                <?php if (!empty($c['numserie'])): ?>
-                  <div class="detalhe-item"><strong>Nº de Série:</strong> <span class="equip-serie"><?= htmlspecialchars($c['numserie']) ?></span></div>
-                <?php endif; ?>
-                <?php if (!empty($c['local'])): ?>
-                  <div class="detalhe-item"><strong>Local / Setor:</strong> <?= htmlspecialchars($c['local']) ?></div>
-                <?php endif; ?>
-                <?php if (!empty($c['tecnico']) && $c['tecnico'] !== 'A Definir'): ?>
-                  <div class="detalhe-item"><strong>Técnico Atual:</strong> <?= htmlspecialchars($c['tecnico']) ?></div>
-                <?php endif; ?>
-                <div class="detalhe-item detalhe-defeito-box">
-                  <strong>Defeito Completo:</strong>
-                  <div class="texto-defeito-completo"><?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></div>
-                </div>
-              </div>
-              <div class="linha-acoes-expandida">
-                <button class="btn-definir-tecnico" onclick="event.stopPropagation(); abrirModalTecnico('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
-                  👤 Alterar Técnico
-                </button>
-              </div>
+            <div class="ticket-cliente-nome"><?= htmlspecialchars($c['cliente']) ?></div>
+
+            <div class="ticket-equip-meta">
+              <?php if (!empty($c['local'])): ?>
+                <span class="chip-equip chip-equip-local">🏢 <?= htmlspecialchars($c['local']) ?></span>
+              <?php endif; ?>
+              <span class="chip-equip chip-equip-modelo">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
             </div>
-          </div>
+
+            <div class="ticket-rodape">
+              <div class="ticket-defeito-preview">
+                <span>🔧 <?= htmlspecialchars($c['defeito'] ?: 'Sem detalhes informados') ?></span>
+              </div>
+              <button class="btn-quick-assign" onclick="event.stopPropagation(); abrirBottomSheet('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['cidade']) ?>', '<?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)', '<?= addslashes($c['modelo']) ?>', '<?= htmlspecialchars($c['numserie']) ?>', '<?= addslashes($c['local']) ?>', '<?= addslashes($c['tecnico']) ?>', '<?= addslashes($c['defeito'] ?: 'Não informado') ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
+                👤 Alterar
+              </button>
+            </div>
+          </article>
         <?php endforeach; ?>
       <?php endif; ?>
     </div>
 
-  </div>
+  </main>
 
-  <!-- Modal Definir Técnico (Mobile Friendly) -->
-  <div id="modalTecnico" class="modal-overlay" style="display: none;" onclick="fecharModalSeFora(event)">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>👤 Definir Técnico</h3>
-        <button class="modal-fechar" onclick="fecharModalTecnico()">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="modal-os-info">
-          <div><strong>OS:</strong> <span id="modalOsNum" class="destaque-os"></span></div>
-          <div><strong>Cliente:</strong> <span id="modalCliente"></span></div>
+  <!-- 5. FLOATING BOTTOM DOCK (THUMB-ZONE NAVEGAÇÃO) -->
+  <nav class="bottom-dock">
+    <button class="dock-item active" id="dockSemTriagem" onclick="trocarAba('sem-triagem')">
+      ⚡ Sem Triagem <span class="dock-badge"><?= count($semTriagem) ?></span>
+    </button>
+    <button class="dock-item" id="dockComTriagem" onclick="trocarAba('com-triagem')">
+      👥 Com Triagem <span class="dock-badge"><?= count($comTriagem) ?></span>
+    </button>
+    <button class="dock-item dock-icon-only" onclick="focarBusca()" title="Buscar OS">
+      🔍
+    </button>
+  </nav>
+
+  <!-- 6. NATIVE BOTTOM SHEET (GAVETA DESLIZANTE NATIVA) -->
+  <div id="sheetBackdrop" class="sheet-backdrop" onclick="fecharSheetSeFora(event)">
+    <div class="bottom-sheet" id="bottomSheet">
+      <div class="sheet-handle-bar"></div>
+      
+      <div class="sheet-header">
+        <div>
+          <span class="sheet-title-os" id="sheetOsNum">OS 000000</span>
+          <span id="sheetBadgeRota" class="badge-rota" style="margin-left: 6px;">CIDADE</span>
         </div>
-        <p class="modal-aviso">
-          ⚡ Ao definir o técnico, a OS será atualizada no Databit para o status <strong>ENCAMINHADO TECNICO (03)</strong> e aparecerá diretamente no sistema do técnico.
-        </p>
-        <div class="modal-campo">
-          <label for="selectTecnico">Selecione o Técnico:</label>
-          <select id="selectTecnico" class="select-tecnico">
-            <option value="">-- Escolha o técnico --</option>
-            <?php foreach ($listaTecnicosFixa as $t): ?>
-              <option value="<?= $t['codigo'] ?>"><?= $t['nome'] ?> (<?= $t['codigo'] ?>)</option>
-            <?php endforeach; ?>
-          </select>
+        <button class="sheet-btn-close" onclick="fecharBottomSheet()">✕</button>
+      </div>
+
+      <div class="sheet-cliente" id="sheetCliente">Nome do Cliente</div>
+
+      <div class="sheet-info-grid">
+        <div class="sheet-row">
+          <span class="sheet-label">Status Databit:</span>
+          <span class="sheet-val" id="sheetStatus">-</span>
+        </div>
+        <div class="sheet-row">
+          <span class="sheet-label">Modelo Equip.:</span>
+          <span class="sheet-val" id="sheetModelo">-</span>
+        </div>
+        <div class="sheet-row" id="sheetRowSerie" style="display: none;">
+          <span class="sheet-label">Nº de Série:</span>
+          <span class="sheet-val" id="sheetNumSerie">-</span>
+        </div>
+        <div class="sheet-row" id="sheetRowLocal" style="display: none;">
+          <span class="sheet-label">Local / Setor:</span>
+          <span class="sheet-val" id="sheetLocal">-</span>
+        </div>
+        <div class="sheet-row" id="sheetRowTecAtual" style="display: none;">
+          <span class="sheet-label">Técnico Atual:</span>
+          <span class="sheet-val" id="sheetTecnicoAtual">-</span>
+        </div>
+
+        <div class="sheet-defeito-card">
+          <div class="sheet-defeito-label">Defeito Informado pelo Cliente</div>
+          <div class="sheet-defeito-texto" id="sheetDefeito">-</div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-cancelar" onclick="fecharModalTecnico()">Cancelar</button>
-        <button class="btn-confirmar" id="btnSalvarTecnico" onclick="confirmarDefinicaoTecnico()">Confirmar (Status 03)</button>
+
+      <div class="sheet-assign-section">
+        <label for="sheetSelectTecnico" class="sheet-assign-label">👤 Definir / Encaminhar para Técnico:</label>
+        <select id="sheetSelectTecnico" class="sheet-select-tec">
+          <option value="">-- Escolha o técnico --</option>
+          <?php foreach ($listaTecnicosFixa as $t): ?>
+            <option value="<?= $t['codigo'] ?>"><?= $t['nome'] ?> (<?= $t['codigo'] ?>)</option>
+          <?php endforeach; ?>
+        </select>
+        <button id="sheetBtnConfirmar" class="sheet-btn-confirm" onclick="confirmarDefinicaoTecnicoSheet()">
+          ⚡ Confirmar Despacho (Status 03)
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Toast de Notificação -->
-  <div id="toastNotificacao" class="toast-aviso" style="display: none;"></div>
+  <!-- Toast -->
+  <div id="toastMsg" class="toast-msg" style="display: none;"></div>
 
   <script>
-    let subStatusAtivo = '';
-    let osSelecionadaModal = null;
-    let osExpandidas = new Set();
+    let abaAtiva = 'sem-triagem';
+    let filtroRapidoAtivo = 'todas';
+    let osSelecionadaSheet = null;
+
+    function iniciarTema() {
+      const temaSalvo = localStorage.getItem('milcopias_theme_2') || 'dark';
+      aplicarTema(temaSalvo);
+    }
+
+    function alternarTema() {
+      const temaAtual = document.documentElement.getAttribute('data-theme') || 'dark';
+      const novoTema = temaAtual === 'dark' ? 'light' : 'dark';
+      aplicarTema(novoTema);
+      localStorage.setItem('milcopias_theme_2', novoTema);
+    }
+
+    function aplicarTema(tema) {
+      document.documentElement.setAttribute('data-theme', tema);
+      const icone = document.getElementById('iconeTema');
+      if (icone) icone.textContent = tema === 'dark' ? '🌙' : '☀️';
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', tema === 'dark' ? '#070a12' : '#f4f6fa');
+    }
 
     function trocarAba(aba) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-conteudo').forEach(c => c.classList.remove('active'));
-      const subBar = document.getElementById('subFiltrosBar');
+      abaAtiva = aba;
+      const dockSem = document.getElementById('dockSemTriagem');
+      const dockCom = document.getElementById('dockComTriagem');
+      const viewSem = document.getElementById('aba-sem-triagem');
+      const viewCom = document.getElementById('aba-com-triagem');
+      const strip = document.getElementById('triageStrip');
 
       if (aba === 'sem-triagem') {
-        document.getElementById('tabBtnSem').classList.add('active');
-        document.getElementById('aba-sem-triagem').classList.add('active');
-        if (subBar) subBar.style.display = 'flex';
+        dockSem.classList.add('active');
+        dockCom.classList.remove('active');
+        viewSem.classList.add('active');
+        viewCom.classList.remove('active');
+        if (strip) strip.style.display = 'flex';
       } else {
-        document.getElementById('tabBtnCom').classList.add('active');
-        document.getElementById('aba-com-triagem').classList.add('active');
-        if (subBar) subBar.style.display = 'none';
+        dockSem.classList.remove('active');
+        dockCom.classList.add('active');
+        viewSem.classList.remove('active');
+        viewCom.classList.add('active');
+        if (strip) strip.style.display = 'none';
       }
       filtrar();
     }
 
-    function filtrarSubStatus(st) {
-      subStatusAtivo = st;
-      document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
-      if (st === '00') {
-        document.getElementById('btnSub00').classList.add('active');
-      } else if (st === '01') {
-        document.getElementById('btnSub01').classList.add('active');
-      } else {
-        document.getElementById('btnSubTodas').classList.add('active');
-      }
+    function selecionarFiltroRapido(tipo) {
+      filtroRapidoAtivo = tipo;
+      document.querySelectorAll('.triage-chip').forEach(c => c.classList.remove('active'));
+      if (tipo === 'todas') document.getElementById('chipTodas')?.classList.add('active');
+      else if (tipo === 'atrasadas') document.getElementById('chipAtrasadas')?.classList.add('active');
+      else if (tipo === '01') document.getElementById('chipWeb')?.classList.add('active');
+      else if (tipo === '00') document.getElementById('chipInterna')?.classList.add('active');
       filtrar();
     }
 
-    function toggleExpandirOS(os, event) {
-      if (event && event.target && event.target.closest('.btn-definir-tecnico')) {
-        return;
-      }
-      const elCard = document.getElementById('card-' + os);
-      const elDet = document.getElementById('detalhes-' + os);
-      if (!elCard || !elDet) return;
-
-      if (osExpandidas.has(os)) {
-        osExpandidas.delete(os);
-        elCard.classList.remove('expandido');
-        elDet.style.display = 'none';
-      } else {
-        osExpandidas.add(os);
-        elCard.classList.add('expandido');
-        elDet.style.display = 'flex';
+    function focarBusca() {
+      const el = document.getElementById('campoBusca');
+      if (el) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        el.focus();
       }
     }
 
     function filtrar() {
       const termo = document.getElementById('campoBusca').value.toLowerCase().trim();
-      document.querySelectorAll('.item-os').forEach(el => {
-        const texto = el.getAttribute('data-texto') || '';
-        const st = el.getAttribute('data-status') || '';
-        
-        let bateTexto = !termo || texto.includes(termo);
-        let bateSub = !subStatusAtivo || st === subStatusAtivo;
+      const viewAtiva = document.getElementById(abaAtiva === 'sem-triagem' ? 'aba-sem-triagem' : 'aba-com-triagem');
+      if (!viewAtiva) return;
 
-        el.style.display = (bateTexto && bateSub) ? 'block' : 'none';
+      viewAtiva.querySelectorAll('.ticket-card').forEach(card => {
+        const txt = card.getAttribute('data-texto') || '';
+        const st = card.getAttribute('data-status') || '';
+        const atr = card.getAttribute('data-atrasado') === '1';
+
+        const bateTexto = !termo || txt.includes(termo);
+        let bateFiltro = true;
+
+        if (abaAtiva === 'sem-triagem') {
+          if (filtroRapidoAtivo === 'atrasadas') bateFiltro = atr;
+          else if (filtroRapidoAtivo === '01') bateFiltro = st === '01';
+          else if (filtroRapidoAtivo === '00') bateFiltro = st === '00';
+        }
+
+        card.style.display = (bateTexto && bateFiltro) ? 'block' : 'none';
       });
     }
 
-    function abrirModalTecnico(os, cliente, codtecAtual) {
-      osSelecionadaModal = os;
-      document.getElementById('modalOsNum').textContent = os;
-      document.getElementById('modalCliente').textContent = cliente;
-      const select = document.getElementById('selectTecnico');
-      if (select && codtecAtual) {
-        select.value = codtecAtual;
-      }
-      document.getElementById('modalTecnico').style.display = 'flex';
+    function abrirBottomSheet(os, cliente, cidade, status, modelo, numserie, local, tecnico, defeito, codtec) {
+      osSelecionadaSheet = os;
+      document.getElementById('sheetOsNum').textContent = 'OS ' + os;
+      
+      const bRota = document.getElementById('sheetBadgeRota');
+      bRota.textContent = cidade || 'GERAL';
+      
+      let cls = 'rota-padrao';
+      const cUpper = (cidade || '').toUpperCase();
+      if (cUpper.includes('LINHARES')) cls = 'rota-linhares';
+      else if (cUpper.includes('COLATINA')) cls = 'rota-colatina';
+      else if (cUpper.includes('ARACRUZ')) cls = 'rota-aracruz';
+      else if (cUpper.includes('JAGUAR')) cls = 'rota-jaguare';
+      bRota.className = 'badge-rota ' + cls;
+
+      document.getElementById('sheetCliente').textContent = cliente;
+      document.getElementById('sheetStatus').textContent = status;
+      document.getElementById('sheetModelo').textContent = modelo || 'Não informado';
+
+      const rowSerie = document.getElementById('sheetRowSerie');
+      if (numserie) {
+        rowSerie.style.display = 'flex';
+        document.getElementById('sheetNumSerie').textContent = numserie;
+      } else { rowSerie.style.display = 'none'; }
+
+      const rowLocal = document.getElementById('sheetRowLocal');
+      if (local) {
+        rowLocal.style.display = 'flex';
+        document.getElementById('sheetLocal').textContent = local;
+      } else { rowLocal.style.display = 'none'; }
+
+      const rowTec = document.getElementById('sheetRowTecAtual');
+      if (tecnico && tecnico !== 'A Definir') {
+        rowTec.style.display = 'flex';
+        document.getElementById('sheetTecnicoAtual').textContent = tecnico;
+      } else { rowTec.style.display = 'none'; }
+
+      document.getElementById('sheetDefeito').textContent = defeito;
+
+      const sel = document.getElementById('sheetSelectTecnico');
+      if (sel && codtec) sel.value = codtec;
+
+      document.getElementById('sheetBackdrop').classList.add('aberto');
+      document.body.style.overflow = 'hidden';
     }
 
-    function fecharModalTecnico() {
-      document.getElementById('modalTecnico').style.display = 'none';
-      osSelecionadaModal = null;
+    function fecharBottomSheet() {
+      document.getElementById('sheetBackdrop').classList.remove('aberto');
+      document.body.style.overflow = '';
+      osSelecionadaSheet = null;
     }
 
-    function fecharModalSeFora(e) {
-      if (e.target && e.target.id === 'modalTecnico') {
-        fecharModalTecnico();
-      }
+    function fecharSheetSeFora(e) {
+      if (e.target && e.target.id === 'sheetBackdrop') fecharBottomSheet();
     }
 
-    async function confirmarDefinicaoTecnico() {
-      const select = document.getElementById('selectTecnico');
+    async function confirmarDefinicaoTecnicoSheet() {
+      if (!osSelecionadaSheet) return;
+      const select = document.getElementById('sheetSelectTecnico');
       const codtec = select.value;
       const nomeTecnico = select.options[select.selectedIndex]?.text || '';
-      const btn = document.getElementById('btnSalvarTecnico');
+      const btn = document.getElementById('sheetBtnConfirmar');
 
       if (!codtec) {
         alert('Por favor, selecione um técnico na lista.');
-        return;
-      }
-
-      if (!osSelecionadaModal) {
-        fecharModalTecnico();
         return;
       }
 
@@ -986,34 +1576,31 @@ $listaTecnicosFixa = [
 
       const formData = new FormData();
       formData.append('acao', 'definir_tecnico');
-      formData.append('os', osSelecionadaModal);
+      formData.append('os', osSelecionadaSheet);
       formData.append('codtec', codtec);
       formData.append('nomeTecnico', nomeTecnico);
 
       try {
-        const res = await fetch(window.location.pathname, {
-          method: 'POST',
-          body: formData
-        });
+        const res = await fetch(window.location.pathname, { method: 'POST', body: formData });
         const json = await res.json();
         if (json.sucesso) {
-          mostrarToast(`✅ OS ${osSelecionadaModal} atribuída com sucesso! Atualizada para ENCAMINHADO TECNICO.`);
-          fecharModalTecnico();
+          mostrarToast('✅ OS ' + osSelecionadaSheet + ' despachada com sucesso!');
+          fecharBottomSheet();
           setTimeout(() => { window.location.reload(); }, 1200);
         } else {
-          alert('Erro ao atribuir técnico: ' + (json.erro || 'Falha'));
+          alert('Erro ao atribuir técnico: ' + (json.erro || 'Falha no Databit'));
           btn.disabled = false;
-          btn.textContent = 'Confirmar (Status 03)';
+          btn.textContent = '⚡ Confirmar Despacho (Status 03)';
         }
       } catch (err) {
         alert('Erro de comunicação: ' + err.message);
         btn.disabled = false;
-        btn.textContent = 'Confirmar (Status 03)';
+        btn.textContent = '⚡ Confirmar Despacho (Status 03)';
       }
     }
 
     function mostrarToast(msg, duracao = 4000) {
-      const t = document.getElementById('toastNotificacao');
+      const t = document.getElementById('toastMsg');
       if (!t) return;
       t.textContent = msg;
       t.style.display = 'block';
@@ -1023,34 +1610,12 @@ $listaTecnicosFixa = [
     function atualizarBadgeApp(qtd) {
       const num = parseInt(qtd, 10) || 0;
       if (num <= 0) {
-        if ('clearAppBadge' in navigator) {
-          navigator.clearAppBadge().catch(() => {});
-        } else if ('setAppBadge' in navigator) {
-          navigator.setAppBadge(0).catch(() => {});
-        }
+        if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
       } else if ('setAppBadge' in navigator) {
         navigator.setAppBadge(num).catch(() => {});
       }
-      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'SET_BADGE', count: num });
-      }
-      document.title = num > 0 ? '(' + num + ') Mil Cópias' : 'Mil Cópias';
+      document.title = num > 0 ? '(' + num + ') Mil Cópias 2.0' : 'Mil Cópias 2.0';
     }
-
-    function marcarTodasComoVistas() {
-      const osAtuais = <?= json_encode(array_column($semTriagem, 'os')) ?>;
-      localStorage.setItem('milcopias_os_vistas', JSON.stringify(osAtuais));
-      atualizarBadgeApp(0);
-    }
-
-    window.addEventListener('focus', marcarTodasComoVistas);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        marcarTodasComoVistas();
-      }
-    });
-    window.addEventListener('click', marcarTodasComoVistas, { passive: true });
-    window.addEventListener('touchstart', marcarTodasComoVistas, { passive: true });
 
     function emitirSomAlerta() {
       try {
@@ -1060,9 +1625,9 @@ $listaTecnicosFixa = [
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -1082,9 +1647,6 @@ $listaTecnicosFixa = [
         if (perm === 'granted') {
           mostrarToast('🔔 Notificações ativadas no celular!');
           emitirSomAlerta();
-          marcarTodasComoVistas();
-        } else if (perm === 'denied') {
-          alert('Para receber alertas no celular, permita as notificações nas configurações do Safari/navegador.');
         }
       } catch (e) {}
     }
@@ -1103,53 +1665,13 @@ $listaTecnicosFixa = [
       }
     }
 
-    // Verificar se surgiram novas OS em relação à última visita
-    (function verificarNovasOS() {
-      const osAtuais = <?= json_encode(array_column($semTriagem, 'os')) ?>;
-      const salvas = localStorage.getItem('milcopias_os_conhecidas');
-      let vistas = [];
-      try {
-        vistas = JSON.parse(localStorage.getItem('milcopias_os_vistas') || '[]');
-      } catch (e) {
-        vistas = [];
-      }
-
-      const naoVistas = osAtuais.filter(x => !vistas.includes(x));
-
-      if (salvas) {
-        try {
-          const listaAntiga = JSON.parse(salvas);
-          const novas = osAtuais.filter(x => !listaAntiga.includes(x));
-          if (novas.length > 0) {
-            emitirSomAlerta();
-            const msg = novas.length === 1 ? '🚨 Nova OS: ' + novas[0] : '🚨 ' + novas.length + ' Novas OS Recebidas!';
-            mostrarToast('🔔 ' + msg, 6000);
-            if (window.Notification && Notification.permission === 'granted') {
-              new Notification(msg, {
-                body: 'Você possui ' + novas.length + ' novo(s) chamado(s) sem triagem.',
-                icon: 'apple-touch-icon.png'
-              });
-            }
-          }
-        } catch (e) {}
-      }
-      localStorage.setItem('milcopias_os_conhecidas', JSON.stringify(osAtuais));
-
-      // Se a página está aberta e visível, o usuário acabou de ver todas as OS: limpa o badge!
-      if (document.visibilityState === 'visible') {
-        localStorage.setItem('milcopias_os_vistas', JSON.stringify(osAtuais));
-        atualizarBadgeApp(0);
-      } else {
-        atualizarBadgeApp(naoVistas.length);
-      }
-    })();
-
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=20261019_04')
-        .then(reg => console.log('SW ativo:', reg.scope))
+      navigator.serviceWorker.register('sw.js?v=20261020_02')
+        .then(reg => console.log('SW 2.0 ativo:', reg.scope))
         .catch(err => console.warn('SW:', err));
     }
 
+    iniciarTema();
     atualizarBotaoNotificacao();
 
     let t = 60;
@@ -1162,3 +1684,4 @@ $listaTecnicosFixa = [
 
 </body>
 </html>
+
