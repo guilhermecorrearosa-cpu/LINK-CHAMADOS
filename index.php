@@ -18,14 +18,14 @@ $cham1_url = 'http://databitbh.com:51202/mc/cham1.php';
 
 function obterNomeStatus($codigo) {
     switch (trim((string)$codigo)) {
-        case '00': return 'ABERTURA OS INTERNA';
-        case '01': return 'ABERTURA DE OS WEB';
-        case '03': return 'ENCAMINHADO TECNICO';
-        case '04': return 'EM ATENDIMENTO';
-        case '05': return 'FINALIZADO TECNICO';
-        case '06': return 'OS CONCLUIDA';
-        case '08': return 'CANCELADA MOBILE';
-        default: return 'STATUS ' . $codigo;
+        case '00': return 'Abertura Interna';
+        case '01': return 'Abertura Web';
+        case '03': return 'Encaminhado Técnico';
+        case '04': return 'Em Atendimento';
+        case '05': return 'Finalizado Técnico';
+        case '06': return 'Concluída';
+        case '08': return 'Cancelada';
+        default: return 'Status ' . $codigo;
     }
 }
 
@@ -409,214 +409,241 @@ $listaTecnicosFixa = [
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Barra Superior (Header Premium Dark) */
+    /* Barra Superior (Header Premium com Gradiente Dark) */
     .topo {
-      position: sticky; top: 0; background: #0f172a; color: #fff;
-      padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;
-      z-index: 100; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      position: sticky; top: 0; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); color: #fff;
+      padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;
+      z-index: 100; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .topo-esq { display: flex; align-items: center; gap: 9px; }
-    .topo-logo { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
-    .topo-titulo { font-size: 14.5px; font-weight: 700; letter-spacing: -0.2px; }
+    .topo-esq { display: flex; align-items: center; gap: 10px; }
+    .topo-logo { width: 26px; height: 26px; border-radius: 7px; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.18); }
+    .topo-titulo { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
     .topo-dir { display: flex; align-items: center; gap: 8px; }
     .btn-notificacao {
-      background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #fff; border-radius: 16px; padding: 3px 8px; font-size: 12px; cursor: pointer;
+      background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 12px; cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;
     }
     .btn-notificacao:active { transform: scale(0.94); }
-    .btn-notificacao.ativo { background: #0284c7; border-color: #38bdf8; }
-    .topo-timer { font-size: 11px; color: #94a3b8; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .btn-notificacao.ativo { background: #0284c7; border-color: #38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+    .topo-timer {
+      font-size: 11px; color: #94a3b8; font-weight: 600; font-variant-numeric: tabular-nums;
+      background: rgba(255, 255, 255, 0.06); padding: 3px 8px; border-radius: 12px;
+    }
 
-    /* Abas Principais (Segmented Control) */
+    /* Abas Principais (Segmented Control Moderno) */
     .tabs-container {
-      background: #fff; padding: 8px 12px 6px; border-bottom: 1px solid #f1f5f9;
-      position: sticky; top: 42px; z-index: 99;
+      background: #fff; padding: 10px 14px 8px; border-bottom: 1px solid #e2e8f0;
+      position: sticky; top: 47px; z-index: 99;
     }
     .tabs {
-      display: flex; background: #f1f5f9; border-radius: 9px; padding: 3px; gap: 3px;
+      display: flex; background: #edf2f7; border-radius: 10px; padding: 3px; gap: 3px;
     }
     .tab-btn {
-      flex: 1; padding: 7px 4px; border: none; background: transparent; font-size: 12.5px;
-      font-weight: 600; color: #64748b; text-align: center; cursor: pointer; border-radius: 7px;
-      transition: all 0.15s ease; display: flex; align-items: center; justify-content: center; gap: 4px;
+      flex: 1; padding: 8px 6px; border: none; background: transparent; font-size: 13px;
+      font-weight: 600; color: #64748b; text-align: center; cursor: pointer; border-radius: 8px;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; justify-content: center; gap: 6px;
     }
     .tab-btn.active {
-      color: #0f172a; background: #fff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+      color: #0f172a; background: #fff; font-weight: 700;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
     }
     .badge-count {
-      display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 10.5px; font-weight: 700;
+      display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 700; line-height: 1.1;
     }
-    .badge-laranja { background: #ea580c; color: #fff; }
-    .badge-azul { background: #0284c7; color: #fff; }
+    .badge-laranja { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
+    .badge-azul { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
 
-    /* Sub-filtros (Chips Minimalistas) */
+    /* Sub-filtros (Chips Refinados) */
     .sub-filtros {
-      display: flex; gap: 6px; padding: 6px 12px; background: #fff; border-bottom: 1px solid #f1f5f9;
+      display: flex; gap: 8px; padding: 8px 14px; background: #fff; border-bottom: 1px solid #f1f5f9;
       align-items: center; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;
     }
     .sub-filtros::-webkit-scrollbar { display: none; }
     .sub-btn {
-      padding: 4px 10px; border: 1px solid #e2e8f0; background: #fff; border-radius: 14px;
-      font-size: 11px; font-weight: 600; color: #64748b; cursor: pointer; flex-shrink: 0; transition: all 0.15s ease;
+      padding: 5px 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 16px;
+      font-size: 11.5px; font-weight: 600; color: #64748b; cursor: pointer; flex-shrink: 0; transition: all 0.15s ease;
     }
-    .sub-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+    .sub-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15); }
 
-    /* Barra de Busca */
-    .busca { padding: 7px 12px; background: #fff; border-bottom: 1px solid #f1f5f9; }
+    /* Barra de Busca (Clean iOS Pill) */
+    .busca { padding: 8px 14px; background: #fff; border-bottom: 1px solid #e2e8f0; }
     .busca-input-wrap { position: relative; display: flex; align-items: center; }
     .busca-input-wrap input {
-      width: 100%; padding: 7px 12px 7px 32px; border: 1px solid transparent; border-radius: 20px;
-      font-size: 12.5px; outline: none; background: #f1f5f9; color: #0f172a; transition: all 0.2s ease;
+      width: 100%; padding: 8px 14px 8px 34px; border: 1px solid transparent; border-radius: 10px;
+      font-size: 13px; outline: none; background: #f1f5f9; color: #0f172a; transition: all 0.2s ease;
     }
     .busca-input-wrap input:focus {
-      background: #fff; border-color: #cbd5e1; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.08);
+      background: #fff; border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
     }
-    .busca-icone { position: absolute; left: 10px; color: #94a3b8; font-size: 12px; pointer-events: none; }
+    .busca-icone { position: absolute; left: 11px; color: #94a3b8; font-size: 13px; pointer-events: none; }
 
     /* Listagem de Chamados */
-    .lista { padding: 8px 10px; max-width: 900px; margin: 0 auto; }
+    .lista { padding: 10px 12px; max-width: 900px; margin: 0 auto; }
     .tab-conteudo { display: none; }
     .tab-conteudo.active { display: block; }
 
-    /* Card Clean Ultra-Compacto */
+    /* Card de OS Elegante & Moderno */
     .item-os {
-      background: #ffffff; border-radius: 8px; padding: 7px 10px; margin-bottom: 5px;
-      border: 1px solid #eef2f6; cursor: pointer; transition: all 0.15s ease;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-      user-select: none; -webkit-tap-highlight-color: transparent;
+      background: #ffffff; border-radius: 12px; padding: 11px 13px; margin-bottom: 9px;
+      border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03); user-select: none; -webkit-tap-highlight-color: transparent;
     }
-    .item-os:active { background: #fafbfc; }
-    .item-os.atrasado { border-left: 3px solid #ef4444; }
-    .item-os.expandido { border-color: #cbd5e1; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05); }
+    .item-os:active { transform: scale(0.995); background: #fafbfc; }
+    .item-os.atrasado { border-left: 4px solid #ef4444; }
+    .item-os.expandido { border-color: #38bdf8; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08); }
 
-    .card-resumo { display: flex; flex-direction: column; gap: 3px; }
+    .card-resumo { display: flex; flex-direction: column; gap: 4px; }
 
-    /* LINHA 1: Topo Fluido (OS · CIDADE · CLIENTE | STATUS · SLA) */
-    .resumo-linha-topo {
-      display: flex; justify-content: space-between; align-items: baseline; gap: 6px;
-    }
-    .resumo-topo-esq {
-      display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; min-width: 0; flex: 1;
-    }
+    /* Nível 1: Meta Bar */
+    .card-linha-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+    .meta-esq { display: flex; align-items: center; gap: 6px; }
     .os-num {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", monospace;
-      font-weight: 700; font-size: 13px; color: #0284c7; letter-spacing: -0.2px; flex-shrink: 0;
+      font-weight: 700; font-size: 13.5px; color: #0284c7; letter-spacing: -0.2px;
     }
-    .dot-sep { color: #cbd5e1; font-size: 11px; }
+    .dot-sep { color: #cbd5e1; font-size: 10px; font-weight: bold; }
     .badge-cidade {
-      font-size: 11px; font-weight: 700; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.2px; flex-shrink: 0;
+      font-size: 10.5px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.4px;
     }
-    .cliente-nome {
-      font-weight: 600; font-size: 12.5px; color: #0f172a; line-height: 1.25; word-break: break-word;
-    }
-    .resumo-topo-dir {
-      display: flex; align-items: center; gap: 5px; flex-shrink: 0;
-    }
+    .meta-dir { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
     .tag-status {
-      font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 8px; letter-spacing: 0.1px; white-space: nowrap;
+      font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 6px; letter-spacing: 0.1px;
+      white-space: nowrap; line-height: 1.2;
     }
-    .tag-status-00 { background: #f1f5f9; color: #475569; }
-    .tag-status-01 { background: #fef3c7; color: #92400e; }
-    .tag-status-03 { background: #e0f2fe; color: #0369a1; }
-    .tag-status-04 { background: #dcfce7; color: #15803d; }
+    .tag-status-00 { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .tag-status-01 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .tag-status-03 { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .tag-status-04 { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
 
-    .tag-sla { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .sla-atraso { color: #dc2626; font-weight: 700; }
-    .sla-normal { color: #94a3b8; }
-    .tag-tecnico {
-      font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 5px;
-      text-transform: uppercase; color: #0f172a; white-space: nowrap;
+    .tag-sla {
+      font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; font-variant-numeric: tabular-nums;
+      white-space: nowrap; line-height: 1.2;
     }
-    .icone-expandir { font-size: 12px; color: #94a3b8; transition: transform 0.2s ease; display: inline-block; line-height: 1; }
+    .sla-atraso { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+    .sla-normal { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
+    .tag-tecnico {
+      font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.06);
+      text-transform: uppercase; color: #0f172a; white-space: nowrap; line-height: 1.2;
+    }
+    .icone-expandir { font-size: 13px; color: #94a3b8; transition: transform 0.2s ease; display: inline-block; line-height: 1; margin-left: 2px; }
     .item-os.expandido .icone-expandir { transform: rotate(90deg); color: #0284c7; }
 
-    /* LINHA 2: Informações Técnicas Inline (LOCAL · MODELO · DEFEITO) */
-    .resumo-linha-info {
-      display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 11.5px; line-height: 1.3;
+    /* Nível 2: Cliente em Destaque */
+    .card-linha-cliente { margin-bottom: 4px; }
+    .cliente-nome {
+      font-weight: 650; font-size: 13.5px; color: #0f172a; line-height: 1.35; display: block; word-break: break-word;
     }
-    .badge-local {
-      font-size: 10.5px; font-weight: 600; color: #065f46; background: #f0fdf4;
-      padding: 1px 5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap;
+
+    /* Nível 3: Contexto Técnico */
+    .card-linha-tecnica { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+    .chip-tecnico {
+      display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 6px; line-height: 1.2;
     }
-    .modelo-compacto {
-      font-size: 10.5px; font-weight: 600; color: #0369a1; background: #f0f9ff;
-      padding: 1px 5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap;
+    .chip-icon { font-size: 10px; }
+    .chip-local { background: #f8fafc; color: #334155; border: 1px solid #e2e8f0; font-weight: 500; }
+    .chip-modelo { background: #f0fdf4; color: #166534; border: 1px solid #dcfce7; font-weight: 600; }
+
+    /* Nível 4: Defeito em 1 Linha com Reticências */
+    .card-linha-defeito {
+      display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #64748b;
+      overflow: hidden; background: #f8fafc; padding: 4px 8px; border-radius: 6px; border: 1px solid #f1f5f9;
     }
-    .defeito-inline {
-      font-size: 11px; font-weight: 500; color: #475569; display: inline-flex; align-items: center; gap: 3px; word-break: break-word;
+    .icone-defeito { font-size: 11px; flex-shrink: 0; opacity: 0.85; }
+    .texto-defeito {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: #475569; flex: 1;
     }
 
     /* Detalhes Expansíveis */
     .card-detalhes {
-      margin-top: 8px; padding-top: 8px; border-top: 1px solid #f1f5f9;
-      display: flex; flex-direction: column; gap: 8px; animation: fadeInDet 0.2s ease-out;
+      margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0;
+      display: flex; flex-direction: column; gap: 8px; animation: fadeInDet 0.22s ease-out;
     }
     @keyframes fadeInDet {
       from { opacity: 0; transform: translateY(-3px); }
       to { opacity: 1; transform: translateY(0); }
     }
     .detalhes-grid {
-      font-size: 11.5px; color: #475569; background: #f8fafc; padding: 8px 10px;
-      border-radius: 7px; display: flex; flex-direction: column; gap: 4px;
+      font-size: 12px; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 12px;
+      border-radius: 8px; display: flex; flex-direction: column; gap: 5px;
     }
-    .detalhes-grid strong { color: #1e293b; }
-    .detalhes-grid div { word-break: break-word; }
-    .equip-serie { font-family: monospace; font-weight: 600; color: #334155; }
+    .detalhe-item { word-break: break-word; line-height: 1.4; }
+    .detalhe-item strong { color: #0f172a; font-weight: 600; }
+    .detalhe-defeito-box { margin-top: 4px; }
+    .texto-defeito-completo {
+      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px 9px;
+      margin-top: 4px; font-size: 12px; color: #1e293b; line-height: 1.45;
+    }
+    .equip-serie { font-family: monospace; font-weight: 600; color: #0284c7; }
     .linha-acoes-expandida { display: flex; padding-top: 2px; }
     .btn-definir-tecnico {
-      width: 100%; background: #0284c7; color: #fff; border: none; border-radius: 8px;
-      font-weight: 600; font-size: 13px; padding: 9px 12px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;
+      width: 100%; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff;
+      border: none; border-radius: 9px; font-weight: 600; font-size: 13px; padding: 11px 14px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all 0.15s ease; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
     }
-    .btn-definir-tecnico:active { background: #0369a1; transform: scale(0.99); }
+    .btn-definir-tecnico:active { transform: scale(0.99); background: #0369a1; }
 
-    /* Modal */
+    /* Modal iOS Sheet */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+      background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
       z-index: 200; display: flex; align-items: flex-end; justify-content: center;
     }
     @media (min-width: 600px) { .modal-overlay { align-items: center; padding: 20px; } }
     .modal-card {
-      background: #fff; width: 100%; max-width: 480px; border-radius: 16px 16px 0 0;
-      padding: 18px; box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; gap: 12px;
+      background: #fff; width: 100%; max-width: 480px; border-radius: 18px 18px 0 0;
+      padding: 20px; box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; gap: 14px;
       animation: slideUp 0.22s ease-out;
     }
     @media (min-width: 600px) { .modal-card { border-radius: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); } }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .modal-header { display: flex; justify-content: space-between; align-items: center; }
-    .modal-header h3 { font-size: 15px; font-weight: 700; color: #0f172a; }
+    .modal-header h3 { font-size: 16px; font-weight: 700; color: #0f172a; }
     .modal-fechar {
       background: #f1f5f9; border: none; font-size: 15px; color: #64748b; cursor: pointer;
-      width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s ease;
     }
-    .modal-os-info { background: #f8fafc; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; display: flex; flex-direction: column; gap: 3px; }
+    .modal-fechar:active { background: #e2e8f0; }
+    .modal-os-info {
+      background: #f8fafc; padding: 10px 14px; border-radius: 9px; border: 1px solid #e2e8f0;
+      font-size: 13px; display: flex; flex-direction: column; gap: 4px;
+    }
     .destaque-os { font-weight: 700; color: #0284c7; font-size: 14px; }
-    .modal-aviso { font-size: 11.5px; color: #0369a1; background: #f0f9ff; padding: 8px 10px; border-radius: 6px; line-height: 1.35; }
-    .modal-campo { display: flex; flex-direction: column; gap: 5px; }
-    .modal-campo label { font-weight: 600; font-size: 12.5px; color: #334155; }
+    .modal-aviso {
+      font-size: 12px; color: #0369a1; background: #f0f9ff; border: 1px solid #bae6fd;
+      padding: 9px 12px; border-radius: 8px; line-height: 1.4;
+    }
+    .modal-campo { display: flex; flex-direction: column; gap: 6px; }
+    .modal-campo label { font-weight: 600; font-size: 13px; color: #334155; }
     .select-tecnico {
-      width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px;
+      width: 100%; padding: 11px 13px; border: 1px solid #cbd5e1; border-radius: 9px;
       font-size: 13.5px; font-weight: 500; color: #0f172a; outline: none; background: #fff;
     }
-    .select-tecnico:focus { border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1); }
-    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; padding-top: 6px; }
-    .btn-cancelar { flex: 1; padding: 11px; border: 1px solid #e2e8f0; background: #fff; color: #64748b; border-radius: 8px; font-weight: 600; font-size: 12.5px; cursor: pointer; }
-    .btn-confirmar { flex: 2; padding: 11px; border: none; background: #0284c7; color: #fff; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
-    .btn-confirmar:active { background: #0369a1; }
-    .btn-confirmar:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .select-tecnico:focus { border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12); }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding-top: 6px; }
+    .btn-cancelar {
+      flex: 1; padding: 11px; border: 1px solid #e2e8f0; background: #fff; color: #64748b;
+      border-radius: 9px; font-weight: 600; font-size: 13px; cursor: pointer;
+    }
+    .btn-confirmar {
+      flex: 2; padding: 11px; border: none; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #fff; border-radius: 9px; font-weight: 600; font-size: 13px; cursor: pointer;
+      transition: all 0.15s ease; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+    }
+    .btn-confirmar:active { transform: scale(0.99); }
+    .btn-confirmar:disabled { background: #cbd5e1; box-shadow: none; cursor: not-allowed; }
 
     /* Toast */
     .toast-aviso {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-      background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 24px;
-      font-size: 12.5px; font-weight: 600; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      background: #0f172a; color: #fff; padding: 10px 18px; border-radius: 24px;
+      font-size: 13px; font-weight: 600; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
       z-index: 300; max-width: 90%; text-align: center;
     }
 
-    .vazio { text-align: center; padding: 40px 16px; color: #94a3b8; font-size: 13px; }
+    .vazio { text-align: center; padding: 50px 16px; color: #94a3b8; font-size: 13.5px; }
   </style>
 </head>
 <body>
@@ -673,45 +700,57 @@ $listaTecnicosFixa = [
         <?php foreach ($semTriagem as $c): ?>
           <?php $nomeSt = obterNomeStatus($c['status']); $modLimpo = simplificarModelo($c['modelo']); ?>
           <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['local']} {$c['modelo']} {$c['numserie']} {$c['defeito']}") ?>">
-            <!-- 1. RESUMO ULTRA-COMPACTO & CLEAN (2 LINHAS) -->
+            <!-- 1. RESUMO ELEGANTE & HIERÁRQUICO (CARD MODERNO) -->
             <div class="card-resumo">
-              <!-- LINHA 1: OS · CIDADE · CLIENTE | STATUS · SLA -->
-              <div class="resumo-linha-topo">
-                <div class="resumo-topo-esq">
+              <!-- NÍVEL 1: META BAR (OS · CIDADE | STATUS · SLA · CHEVRON) -->
+              <div class="card-linha-meta">
+                <div class="meta-esq">
                   <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
                   <span class="dot-sep">·</span>
                   <span class="badge-cidade"><?= htmlspecialchars($c['cidade']) ?></span>
-                  <span class="dot-sep">·</span>
-                  <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
                 </div>
-                <div class="resumo-topo-dir">
+                <div class="meta-dir">
                   <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
                   <span class="tag-sla <?= (int)$c['sla'] < 0 ? 'sla-atraso' : 'sla-normal' ?>"><?= $c['sla'] ?>h</span>
                   <span class="icone-expandir">›</span>
                 </div>
               </div>
 
-              <!-- LINHA 2: LOCAL · MODELO · DEFEITO (INLINE) -->
-              <div class="resumo-linha-info">
+              <!-- NÍVEL 2: CLIENTE EM DESTAQUE (LINHA PRÓPRIA, 100% LEGÍVEL) -->
+              <div class="card-linha-cliente">
+                <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
+              </div>
+
+              <!-- NÍVEL 3: CONTEXTO TÉCNICO HARMONIOSO (LOCAL + MODELO) -->
+              <div class="card-linha-tecnica">
                 <?php if (!empty($c['local'])): ?>
-                  <span class="badge-local">🏢 <?= htmlspecialchars($c['local']) ?></span>
+                  <span class="chip-tecnico chip-local"><span class="chip-icon">🏢</span><?= htmlspecialchars($c['local']) ?></span>
                 <?php endif; ?>
-                <span class="modelo-compacto">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
-                <span class="defeito-inline">🔧 <?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></span>
+                <span class="chip-tecnico chip-modelo"><span class="chip-icon">🖨️</span><?= htmlspecialchars($modLimpo) ?></span>
+              </div>
+
+              <!-- NÍVEL 4: PREVIEW DISCRETO DO DEFEITO (1 LINHA COM RETICÊNCIAS) -->
+              <div class="card-linha-defeito">
+                <span class="icone-defeito">🔧</span>
+                <span class="texto-defeito"><?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></span>
               </div>
             </div>
 
-            <!-- 2. DETALHES EXPANSÍVEIS (AO TOCAR NA OS) -->
+            <!-- 2. DETALHES COMPLETOS (AO TOCAR NA OS) -->
             <div class="card-detalhes" id="detalhes-<?= htmlspecialchars($c['os']) ?>" style="display: none;">
               <div class="detalhes-grid">
-                <div><strong>Status Databit:</strong> <?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)</div>
-                <div><strong>Modelo Completo:</strong> <?= htmlspecialchars($c['modelo']) ?></div>
+                <div class="detalhe-item"><strong>Status Databit:</strong> <?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)</div>
+                <div class="detalhe-item"><strong>Modelo:</strong> <?= htmlspecialchars($c['modelo']) ?></div>
                 <?php if (!empty($c['numserie'])): ?>
-                  <div><strong>Nº de Série:</strong> <span class="equip-serie"><?= htmlspecialchars($c['numserie']) ?></span></div>
+                  <div class="detalhe-item"><strong>Nº de Série:</strong> <span class="equip-serie"><?= htmlspecialchars($c['numserie']) ?></span></div>
                 <?php endif; ?>
                 <?php if (!empty($c['local'])): ?>
-                  <div><strong>Local/Setor:</strong> <?= htmlspecialchars($c['local']) ?></div>
+                  <div class="detalhe-item"><strong>Local / Setor:</strong> <?= htmlspecialchars($c['local']) ?></div>
                 <?php endif; ?>
+                <div class="detalhe-item detalhe-defeito-box">
+                  <strong>Defeito Completo:</strong>
+                  <div class="texto-defeito-completo"><?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></div>
+                </div>
               </div>
               <div class="linha-acoes-expandida">
                 <button class="btn-definir-tecnico" onclick="event.stopPropagation(); abrirModalTecnico('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['codtec']) ?>')">
@@ -732,18 +771,16 @@ $listaTecnicosFixa = [
         <?php foreach ($comTriagem as $c): ?>
           <?php $nomeSt = obterNomeStatus($c['status']); $modLimpo = simplificarModelo($c['modelo']); ?>
           <div class="item-os <?= $c['atrasado'] ? 'atrasado' : '' ?>" id="card-<?= htmlspecialchars($c['os']) ?>" onclick="toggleExpandirOS('<?= htmlspecialchars($c['os']) ?>', event)" data-status="<?= htmlspecialchars($c['status']) ?>" data-texto="<?= strtolower("{$c['os']} {$nomeSt} {$c['cliente']} {$c['cidade']} {$c['local']} {$c['modelo']} {$c['numserie']} {$c['tecnico']} {$c['defeito']}") ?>">
-            <!-- 1. RESUMO ULTRA-COMPACTO & CLEAN (2 LINHAS) -->
+            <!-- 1. RESUMO ELEGANTE & HIERÁRQUICO (CARD MODERNO) -->
             <div class="card-resumo">
-              <!-- LINHA 1: OS · CIDADE · CLIENTE | STATUS · TÉCNICO -->
-              <div class="resumo-linha-topo">
-                <div class="resumo-topo-esq">
+              <!-- NÍVEL 1: META BAR (OS · CIDADE | STATUS · TÉCNICO · CHEVRON) -->
+              <div class="card-linha-meta">
+                <div class="meta-esq">
                   <span class="os-num"><?= htmlspecialchars($c['os']) ?></span>
                   <span class="dot-sep">·</span>
                   <span class="badge-cidade"><?= htmlspecialchars($c['cidade']) ?></span>
-                  <span class="dot-sep">·</span>
-                  <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
                 </div>
-                <div class="resumo-topo-dir">
+                <div class="meta-dir">
                   <span class="tag-status tag-status-<?= htmlspecialchars($c['status']) ?>"><?= htmlspecialchars($nomeSt) ?></span>
                   <span class="tag-tecnico" style="background-color: <?= htmlspecialchars($c['corTecnico']) ?>">
                     <?= htmlspecialchars($c['tecnico']) ?>
@@ -752,30 +789,44 @@ $listaTecnicosFixa = [
                 </div>
               </div>
 
-              <!-- LINHA 2: LOCAL · MODELO · DEFEITO (INLINE) -->
-              <div class="resumo-linha-info">
+              <!-- NÍVEL 2: CLIENTE EM DESTAQUE (LINHA PRÓPRIA, 100% LEGÍVEL) -->
+              <div class="card-linha-cliente">
+                <span class="cliente-nome"><?= htmlspecialchars($c['cliente']) ?></span>
+              </div>
+
+              <!-- NÍVEL 3: CONTEXTO TÉCNICO HARMONIOSO (LOCAL + MODELO) -->
+              <div class="card-linha-tecnica">
                 <?php if (!empty($c['local'])): ?>
-                  <span class="badge-local">🏢 <?= htmlspecialchars($c['local']) ?></span>
+                  <span class="chip-tecnico chip-local"><span class="chip-icon">🏢</span><?= htmlspecialchars($c['local']) ?></span>
                 <?php endif; ?>
-                <span class="modelo-compacto">🖨️ <?= htmlspecialchars($modLimpo) ?></span>
-                <span class="defeito-inline">🔧 <?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></span>
+                <span class="chip-tecnico chip-modelo"><span class="chip-icon">🖨️</span><?= htmlspecialchars($modLimpo) ?></span>
+              </div>
+
+              <!-- NÍVEL 4: PREVIEW DISCRETO DO DEFEITO (1 LINHA COM RETICÊNCIAS) -->
+              <div class="card-linha-defeito">
+                <span class="icone-defeito">🔧</span>
+                <span class="texto-defeito"><?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></span>
               </div>
             </div>
 
-            <!-- 2. DETALHES EXPANSÍVEIS (AO TOCAR NA OS) -->
+            <!-- 2. DETALHES COMPLETOS (AO TOCAR NA OS) -->
             <div class="card-detalhes" id="detalhes-<?= htmlspecialchars($c['os']) ?>" style="display: none;">
               <div class="detalhes-grid">
-                <div><strong>Status Databit:</strong> <?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)</div>
-                <div><strong>Modelo Completo:</strong> <?= htmlspecialchars($c['modelo']) ?></div>
+                <div class="detalhe-item"><strong>Status Databit:</strong> <?= htmlspecialchars($nomeSt) ?> (<?= htmlspecialchars($c['status']) ?>)</div>
+                <div class="detalhe-item"><strong>Modelo:</strong> <?= htmlspecialchars($c['modelo']) ?></div>
                 <?php if (!empty($c['numserie'])): ?>
-                  <div><strong>Nº de Série:</strong> <span class="equip-serie"><?= htmlspecialchars($c['numserie']) ?></span></div>
+                  <div class="detalhe-item"><strong>Nº de Série:</strong> <span class="equip-serie"><?= htmlspecialchars($c['numserie']) ?></span></div>
                 <?php endif; ?>
                 <?php if (!empty($c['local'])): ?>
-                  <div><strong>Local/Setor:</strong> <?= htmlspecialchars($c['local']) ?></div>
+                  <div class="detalhe-item"><strong>Local / Setor:</strong> <?= htmlspecialchars($c['local']) ?></div>
                 <?php endif; ?>
                 <?php if (!empty($c['tecnico']) && $c['tecnico'] !== 'A Definir'): ?>
-                  <div><strong>Técnico Atual:</strong> <?= htmlspecialchars($c['tecnico']) ?></div>
+                  <div class="detalhe-item"><strong>Técnico Atual:</strong> <?= htmlspecialchars($c['tecnico']) ?></div>
                 <?php endif; ?>
+                <div class="detalhe-item detalhe-defeito-box">
+                  <strong>Defeito Completo:</strong>
+                  <div class="texto-defeito-completo"><?= htmlspecialchars($c['defeito'] ?: 'Não informado') ?></div>
+                </div>
               </div>
               <div class="linha-acoes-expandida">
                 <button class="btn-definir-tecnico" onclick="event.stopPropagation(); abrirModalTecnico('<?= htmlspecialchars($c['os']) ?>', '<?= addslashes($c['cliente']) ?>', '<?= htmlspecialchars($c['codtec']) ?>')">

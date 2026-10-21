@@ -18,13 +18,13 @@ let osSelecionadaModal = null;
 let osExpandidas = new Set();
 
 const MAPA_STATUS_DATABIT = {
-  '00': 'ABERTURA OS INTERNA',
-  '01': 'ABERTURA DE OS WEB',
-  '03': 'ENCAMINHADO TECNICO',
-  '04': 'EM ATENDIMENTO',
-  '05': 'FINALIZADO TECNICO',
-  '06': 'OS CONCLUIDA',
-  '08': 'CANCELADA MOBILE'
+  '00': 'Abertura Interna',
+  '01': 'Abertura Web',
+  '03': 'Encaminhado Técnico',
+  '04': 'Em Atendimento',
+  '05': 'Finalizado Técnico',
+  '06': 'Concluída',
+  '08': 'Cancelada'
 };
 
 function obterNomeStatus(codigo, item) {
@@ -115,45 +115,57 @@ function criarItemHTML(item, isComTriagem) {
   const isExpandido = osExpandidas.has(item.os);
 
   const rightTag = isComTriagem
-    ? `<span class="tag-tecnico" style="background-color: ${item.corTecnico || '#cbd5e1'}">${escapeHtml(item.tecnico)}</span>`
+    ? `<span class="tag-tecnico" style="background-color: ${item.corTecnico || '#e2e8f0'}">${escapeHtml(item.tecnico)}</span>`
     : `<span class="tag-sla ${parseInt(item.sla) < 0 ? 'sla-atraso' : 'sla-normal'}">${item.sla}h</span>`;
 
   return `
     <div class="item-os ${atrasadoClass} ${isExpandido ? 'expandido' : ''}" id="card-${item.os}" onclick="toggleExpandirOS('${item.os}', event)" data-status="${st}" data-texto="${(item.os + ' ' + nomeStatus + ' ' + item.cliente + ' ' + item.cidade + ' ' + (item.local || '') + ' ' + (item.modelo || '') + ' ' + (item.numserie || '') + ' ' + (item.tecnico || '') + ' ' + (item.defeito || '')).toLowerCase()}">
-      <!-- 1. RESUMO ULTRA-COMPACTO & CLEAN (2 LINHAS) -->
+      <!-- 1. RESUMO ELEGANTE & HIERÁRQUICO (CARD MODERNO) -->
       <div class="card-resumo">
-        <!-- LINHA 1: OS · CIDADE · CLIENTE | STATUS · SLA / TÉCNICO -->
-        <div class="resumo-linha-topo">
-          <div class="resumo-topo-esq">
+        <!-- NÍVEL 1: META BAR (OS · CIDADE | STATUS · SLA/TÉCNICO · CHEVRON) -->
+        <div class="card-linha-meta">
+          <div class="meta-esq">
             <span class="os-num">${escapeHtml(item.os)}</span>
             <span class="dot-sep">·</span>
             <span class="badge-cidade">${escapeHtml(item.cidade || '')}</span>
-            <span class="dot-sep">·</span>
-            <span class="cliente-nome">${escapeHtml(item.cliente)}</span>
           </div>
-          <div class="resumo-topo-dir">
+          <div class="meta-dir">
             <span class="tag-status tag-status-${st}">${escapeHtml(nomeStatus)}</span>
             ${rightTag}
             <span class="icone-expandir">›</span>
           </div>
         </div>
 
-        <!-- LINHA 2: LOCAL · MODELO · DEFEITO (INLINE) -->
-        <div class="resumo-linha-info">
-          ${item.local ? `<span class="badge-local">🏢 ${escapeHtml(item.local)}</span>` : ''}
-          <span class="modelo-compacto">🖨️ ${escapeHtml(modeloLimpo)}</span>
-          <span class="defeito-inline">🔧 ${escapeHtml(item.defeito || 'Não informado')}</span>
+        <!-- NÍVEL 2: CLIENTE EM DESTAQUE (LINHA PRÓPRIA, 100% LEGÍVEL) -->
+        <div class="card-linha-cliente">
+          <span class="cliente-nome">${escapeHtml(item.cliente)}</span>
+        </div>
+
+        <!-- NÍVEL 3: CONTEXTO TÉCNICO HARMONIOSO (LOCAL + MODELO) -->
+        <div class="card-linha-tecnica">
+          ${item.local ? `<span class="chip-tecnico chip-local"><span class="chip-icon">🏢</span>${escapeHtml(item.local)}</span>` : ''}
+          <span class="chip-tecnico chip-modelo"><span class="chip-icon">🖨️</span>${escapeHtml(modeloLimpo)}</span>
+        </div>
+
+        <!-- NÍVEL 4: PREVIEW DISCRETO DO DEFEITO (1 LINHA COM RETICÊNCIAS) -->
+        <div class="card-linha-defeito">
+          <span class="icone-defeito">🔧</span>
+          <span class="texto-defeito">${escapeHtml(item.defeito || 'Não informado')}</span>
         </div>
       </div>
 
       <!-- 2. DETALHES EXPANSÍVEIS (MOSTRADOS AO TOCAR NA OS) -->
       <div class="card-detalhes" id="detalhes-${item.os}" style="display: ${isExpandido ? 'flex' : 'none'};">
         <div class="detalhes-grid">
-          <div><strong>Status Databit:</strong> ${escapeHtml(nomeStatus)} (${st})</div>
-          <div><strong>Modelo Completo:</strong> ${escapeHtml(item.modelo || 'Não cadastrado')}</div>
-          ${item.numserie ? `<div><strong>Nº de Série:</strong> <span class="equip-serie">${escapeHtml(item.numserie)}</span></div>` : ''}
-          ${item.local ? `<div><strong>Local/Setor:</strong> ${escapeHtml(item.local)}</div>` : ''}
-          ${isComTriagem && item.tecnico && item.tecnico !== 'A Definir' ? `<div><strong>Técnico Atual:</strong> ${escapeHtml(item.tecnico)}</div>` : ''}
+          <div class="detalhe-item"><strong>Status Databit:</strong> ${escapeHtml(nomeStatus)} (${st})</div>
+          <div class="detalhe-item"><strong>Modelo:</strong> ${escapeHtml(item.modelo || 'Não cadastrado')}</div>
+          ${item.numserie ? `<div class="detalhe-item"><strong>Nº de Série:</strong> <span class="equip-serie">${escapeHtml(item.numserie)}</span></div>` : ''}
+          ${item.local ? `<div class="detalhe-item"><strong>Local / Setor:</strong> ${escapeHtml(item.local)}</div>` : ''}
+          ${isComTriagem && item.tecnico && item.tecnico !== 'A Definir' ? `<div class="detalhe-item"><strong>Técnico Atual:</strong> ${escapeHtml(item.tecnico)}</div>` : ''}
+          <div class="detalhe-item detalhe-defeito-box">
+            <strong>Defeito Completo:</strong>
+            <div class="texto-defeito-completo">${escapeHtml(item.defeito || 'Não informado')}</div>
+          </div>
         </div>
         <div class="linha-acoes-expandida">
           <button class="btn-definir-tecnico" onclick="event.stopPropagation(); abrirModalTecnico('${item.os}', '${escapeJsParam(item.cliente)}', '${item.codtec || ''}')">
