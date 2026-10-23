@@ -413,13 +413,11 @@ async function buscarChamadosDiretoDatabit() {
       checkIn: ''
     };
 
-    // Classificação
-    if (!codtec || codtec === '0000' || ['00', '01'].includes(statusos)) {
-      if (codtec && codtec !== '0000' && statusos === '03') {
-        comTriagem.push(osObj);
-      } else {
-        semTriagem.push(osObj);
-      }
+    // Classificação oficial Databit:
+    // Sem Triagem = Status 00 (Abertura Interna) e 01 (Abertura Web)
+    // Com Triagem = Status 03 (Encaminhado Técnico) e 04 (Em Atendimento)
+    if (['00', '01'].includes(statusos)) {
+      semTriagem.push(osObj);
     } else {
       comTriagem.push(osObj);
     }

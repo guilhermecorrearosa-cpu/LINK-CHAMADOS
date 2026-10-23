@@ -241,12 +241,11 @@ if ($html) {
                 'corTecnico' => $coresTec[$codtec] ?? '#cbd5e1'
             ];
 
-            if (!$codtec || $codtec === '0000' || in_array($st, ['00', '01'])) {
-                if ($codtec && $codtec !== '0000' && $st === '03') {
-                    $comTriagem[] = $itemObj;
-                } else {
-                    $semTriagem[] = $itemObj;
-                }
+            // Classificação oficial Databit:
+            // Sem Triagem = Status 00 (Abertura Interna) e 01 (Abertura Web)
+            // Com Triagem = Status 03 (Encaminhado Técnico) e 04 (Em Atendimento)
+            if (in_array($st, ['00', '01'])) {
+                $semTriagem[] = $itemObj;
             } else {
                 $comTriagem[] = $itemObj;
             }
