@@ -283,6 +283,18 @@ foreach ($semTriagem as &$item) {
 }
 unset($item);
 
+// Ordenar prioritariamente por Cidade (A-Z) e secundariamente pela OS mais recente
+$compararPorCidade = function($a, $b) {
+    $cidA = mb_strtoupper(trim($a['cidade'] ?? 'GERAL'));
+    $cidB = mb_strtoupper(trim($b['cidade'] ?? 'GERAL'));
+    $comp = strcmp($cidA, $cidB);
+    if ($comp !== 0) return $comp;
+    return (int)($b['os'] ?? 0) - (int)($a['os'] ?? 0);
+};
+
+usort($semTriagem, $compararPorCidade);
+usort($comTriagem, $compararPorCidade);
+
 foreach ($comTriagem as &$item) {
     $info = isset($detalhesAPI[$item['os']]) ? $detalhesAPI[$item['os']] : [
         'defeito' => 'Não informado',
@@ -298,6 +310,18 @@ foreach ($comTriagem as &$item) {
     $item['codtec'] = !empty($info['codtec']) ? $info['codtec'] : '0000';
 }
 unset($item);
+
+// Ordenar prioritariamente por Cidade (A-Z) e secundariamente pela OS mais recente
+$compararPorCidade = function($a, $b) {
+    $cidA = mb_strtoupper(trim($a['cidade'] ?? 'GERAL'));
+    $cidB = mb_strtoupper(trim($b['cidade'] ?? 'GERAL'));
+    $comp = strcmp($cidA, $cidB);
+    if ($comp !== 0) return $comp;
+    return (int)($b['os'] ?? 0) - (int)($a['os'] ?? 0);
+};
+
+usort($semTriagem, $compararPorCidade);
+usort($comTriagem, $compararPorCidade);
 
 function carregarDetalhesReaisEmLote($listaOS, $baseUrl) {
     if (empty($listaOS)) return [];

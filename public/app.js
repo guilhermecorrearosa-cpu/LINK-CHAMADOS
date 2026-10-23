@@ -13,6 +13,7 @@ let dados = { semTriagem: [], comTriagem: [] };
 let listaTecnicos = [];
 let abaAtiva = 'sem-triagem';
 let filtroRapidoAtivo = 'todas';
+let ordenacaoAtiva = localStorage.getItem('milcopias_ordem') || 'cidade'; // 'cidade' ou 'os'
 let osSelecionadaSheet = null;
 let osConhecidas = null;
 
@@ -62,7 +63,41 @@ function obterClasseRota(cidade) {
   if (cid.includes('COLATINA')) return 'rota-colatina';
   if (cid.includes('ARACRUZ')) return 'rota-aracruz';
   if (cid.includes('JAGUARE')) return 'rota-jaguare';
+  if (cid.includes('MATEUS')) return 'rota-saomateus';
+  if (cid.includes('SERRA')) return 'rota-serra';
+  if (cid.includes('VITORIA')) return 'rota-vitoria';
+  if (cid.includes('VENECIA')) return 'rota-novavenecia';
+  if (cid.includes('BANANAL')) return 'rota-riobananal';
   return 'rota-padrao';
+}
+
+function definirOrdenacao(tipo) {
+  ordenacaoAtiva = tipo;
+  localStorage.setItem('milcopias_ordem', tipo);
+  
+  const btnCidade = document.getElementById('btnOrdemCidade');
+  const btnOS = document.getElementById('btnOrdemOS');
+  if (tipo === 'cidade') {
+    btnCidade?.classList.add('active');
+    btnOS?.classList.remove('active');
+  } else {
+    btnOS?.classList.add('active');
+    btnCidade?.classList.remove('active');
+  }
+  
+  renderizar();
+}
+
+function iniciarOrdenacao() {
+  const btnCidade = document.getElementById('btnOrdemCidade');
+  const btnOS = document.getElementById('btnOrdemOS');
+  if (ordenacaoAtiva === 'cidade') {
+    btnCidade?.classList.add('active');
+    btnOS?.classList.remove('active');
+  } else {
+    btnOS?.classList.add('active');
+    btnCidade?.classList.remove('active');
+  }
 }
 
 function obterNomeStatus(codigo, item) {
@@ -222,6 +257,24 @@ function renderizar() {
   const semTriagemFiltrados = filtrarLista(dados.semTriagem, true);
   const comTriagemFiltrados = filtrarLista(dados.comTriagem, false);
 
+  // Ordenação inteligente (Por Cidade ou Por OS)
+  const ordenarLista = (lista) => {
+    if (ordenacaoAtiva === 'cidade') {
+      return [...lista].sort((a, b) => {
+        const cidA = (a.cidade || 'GERAL').trim().toUpperCase();
+        const cidB = (b.cidade || 'GERAL').trim().toUpperCase();
+        const comp = cidA.localeCompare(cidB, 'pt-BR', { sensitivity: 'base' });
+        if (comp !== 0) return comp;
+        return parseInt(b.os, 10) - parseInt(a.os, 10);
+      });
+    } else {
+      return [...lista].sort((a, b) => parseInt(b.os, 10) - parseInt(a.os, 10));
+    }
+  };
+
+  const semTriagemOrdenados = ordenarLista(semTriagemFiltrados);
+  const comTriagemOrdenados = ordenarLista(comTriagemFiltrados);
+
   // Atualizar Contadores da Top Strip e Bottom Dock
   const totalSem = dados.semTriagem.length;
   const totalCom = dados.comTriagem.length;
@@ -247,24 +300,56 @@ function renderizar() {
   const elDockBadgeCom = document.getElementById('dockBadgeCom');
   if (elDockBadgeCom) elDockBadgeCom.textContent = totalCom;
 
+  // Renderizar com divisores elegantes de Cidade
+  const renderizarComDivisores = (itens, isComTriagem) => {
+    if (itens.length === 0) {
+      return isComTriagem
+        ? '<div class="vazio-msg">Nenhum chamado atribuído no momento.</div>'
+        : '<div class="vazio-msg">✨ Nenhum chamado encontrado nesta categoria.</div>';
+    }
+
+    if (ordenacaoAtiva !== 'cidade') {
+      return itens.map(item => criarCardHTML(item, isComTriagem)).join('');
+    }
+
+    const contagemCidade = {};
+    itens.forEach(x => {
+      const cid = (x.cidade || 'GERAL').trim().toUpperCase();
+      contagemCidade[cid] = (contagemCidade[cid] || 0) + 1;
+    });
+
+    let html = '';
+    let ultimaCidade = null;
+
+    itens.forEach(item => {
+      const cid = (item.cidade || 'GERAL').trim().toUpperCase();
+      if (cid !== ultimaCidade) {
+        ultimaCidade = cid;
+        const qtd = contagemCidade[cid] || 1;
+        const classeRota = obterClasseRota(cid);
+        html += `
+          <div class="divisor-cidade">
+            <span class="divisor-cidade-badge ${classeRota}">📍 ${escapeHtml(cid)}</span>
+            <span class="divisor-qtd">${qtd} ${qtd > 1 ? 'chamados' : 'chamado'}</span>
+          </div>
+        `;
+      }
+      html += criarCardHTML(item, isComTriagem);
+    });
+
+    return html;
+  };
+
   // Renderizar Container Sem Triagem
   const cSem = document.getElementById('aba-sem-triagem');
   if (cSem) {
-    if (semTriagemFiltrados.length === 0) {
-      cSem.innerHTML = '<div class="vazio-msg">✨ Nenhum chamado encontrado nesta categoria.</div>';
-    } else {
-      cSem.innerHTML = semTriagemFiltrados.map(item => criarCardHTML(item, false)).join('');
-    }
+    cSem.innerHTML = renderizarComDivisores(semTriagemOrdenados, false);
   }
 
   // Renderizar Container Com Triagem
   const cCom = document.getElementById('aba-com-triagem');
   if (cCom) {
-    if (comTriagemFiltrados.length === 0) {
-      cCom.innerHTML = '<div class="vazio-msg">Nenhum chamado atribuído no momento.</div>';
-    } else {
-      cCom.innerHTML = comTriagemFiltrados.map(item => criarCardHTML(item, true)).join('');
-    }
+    cCom.innerHTML = renderizarComDivisores(comTriagemOrdenados, true);
   }
 }
 
@@ -627,6 +712,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // Inicialização
+iniciarOrdenacao();
 iniciarTema();
 atualizarBotaoNotificacao();
 carregarTecnicos();

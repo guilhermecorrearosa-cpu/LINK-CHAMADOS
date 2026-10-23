@@ -281,6 +281,43 @@ body {
   pointer-events: none;
 }
 
+/* BARRA DE ORDENAÇÃO */
+.ordem-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 0 2px;
+}
+.ordem-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.btn-ordem {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-ordem.active {
+  background: var(--accent-blue);
+  color: #ffffff;
+  border-color: var(--accent-blue);
+  box-shadow: 0 2px 8px var(--glow-accent);
+}
+
 /* ==========================================================
    4. LISTA DE TICKETS (CARDS BENTO 2.0)
    ========================================================== */
@@ -380,10 +417,68 @@ body {
   color: #c084fc;
   border: 1px solid rgba(168, 85, 247, 0.3);
 }
+.rota-saomateus {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+.rota-serra {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+.rota-vitoria {
+  background: rgba(129, 140, 248, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(129, 140, 248, 0.3);
+}
+.rota-novavenecia {
+  background: rgba(20, 184, 166, 0.15);
+  color: #2dd4bf;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+}
+.rota-riobananal {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
 .rota-padrao {
   background: var(--bg-chip);
   color: var(--text-secondary);
   border: 1px solid var(--border-chip);
+}
+
+/* SEÇÃO / DIVISOR DE CIDADE */
+.divisor-cidade {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 4px 4px;
+  margin-top: 6px;
+  margin-bottom: 2px;
+}
+.divisor-cidade:first-child {
+  margin-top: 0;
+}
+.divisor-cidade-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+}
+.divisor-qtd {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-card);
 }
 
 .ticket-acoes-dir {

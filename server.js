@@ -425,9 +425,17 @@ async function buscarChamadosDiretoDatabit() {
     }
   }
 
-  // Ordenar as OSs das mais recentes para as mais antigas
-  semTriagem.sort((a, b) => parseInt(b.os, 10) - parseInt(a.os, 10));
-  comTriagem.sort((a, b) => parseInt(b.os, 10) - parseInt(a.os, 10));
+  // Ordenar prioritariamente por Cidade (A-Z) e secundariamente pela OS mais recente
+  const compararPorCidade = (a, b) => {
+    const cidA = (a.cidade || 'GERAL').trim().toUpperCase();
+    const cidB = (b.cidade || 'GERAL').trim().toUpperCase();
+    const comp = cidA.localeCompare(cidB, 'pt-BR', { sensitivity: 'base' });
+    if (comp !== 0) return comp;
+    return parseInt(b.os, 10) - parseInt(a.os, 10);
+  };
+
+  semTriagem.sort(compararPorCidade);
+  comTriagem.sort(compararPorCidade);
 
   return { semTriagem, comTriagem, fonte: 'API Oficial Databit (Conexão Direta)' };
 }

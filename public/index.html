@@ -63,11 +63,20 @@
     </button>
   </div>
 
-  <!-- 3. BARRA DE BUSCA INTELIGENTE -->
+  <!-- 3. BARRA DE BUSCA INTELIGENTE COM SELETOR DE ORDENAÇÃO -->
   <div class="busca-container">
     <div class="busca-box">
       <span class="busca-icon-lupa">🔍</span>
       <input type="text" id="campoBusca" placeholder="Buscar por OS, cliente, modelo, defeito, cidade..." onkeyup="filtrar()" autocomplete="off">
+    </div>
+    <div class="ordem-bar">
+      <span class="ordem-label">Ordem:</span>
+      <button id="btnOrdemCidade" class="btn-ordem active" onclick="definirOrdenacao('cidade')">
+        📍 Por Cidade
+      </button>
+      <button id="btnOrdemOS" class="btn-ordem" onclick="definirOrdenacao('os')">
+        🔢 Mais Recentes
+      </button>
     </div>
   </div>
 
