@@ -99,10 +99,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
     exit;
 }
 
-// 1. Baixar chamados ao vivo do cham1.php
+// 1. Baixar chamados ao vivo do cham1.php (timeout curto de 2.5s)
 $ctx = stream_context_create([
     'http' => [
-        'timeout' => 6,
+        'timeout' => 2.5,
         'header' => "User-Agent: Mozilla/5.0 (Mobile)\r\n"
     ]
 ]);
@@ -164,6 +164,91 @@ if ($html) {
                     'corTecnico' => $corTecnico,
                     'atrasado' => $isAtrasado
                 ];
+            }
+        }
+    }
+} else {
+    // Fallback Resiliente: Busca Direta na API Databit ERP
+    $optsFallback = [
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/json\r\nAccept: application/json\r\n",
+            'content' => json_encode(['filtro' => "codigo >= '052000' and statusos in ('00', '01', '03', '04') and situacao = 'A'"]),
+            'timeout' => 6
+        ]
+    ];
+    $resOS = @file_get_contents($api_base_url . 'OsController/listar', false, stream_context_create($optsFallback));
+    if ($resOS) {
+        $jsonOS = json_decode($resOS, true);
+        $listaOS = isset($jsonOS['value']) ? $jsonOS['value'] : (is_array($jsonOS) ? $jsonOS : []);
+        
+        $codsCli = array_unique(array_filter(array_map(function($x) { return isset($x['codcli']) ? trim($x['codcli']) : ''; }, $listaOS)));
+        $mapaCli = [];
+        if (!empty($codsCli)) {
+            $inCli = implode("','", $codsCli);
+            $resCli = @file_get_contents($api_base_url . 'ClienteController/listar', false, stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => "Content-Type: application/json\r\n",
+                    'content' => json_encode(['filtro' => "codigo in ('{$inCli}')"]),
+                    'timeout' => 4
+                ]
+            ]));
+            if ($resCli) {
+                $jsonCli = json_decode($resCli, true);
+                foreach (($jsonCli['value'] ?? []) as $c) {
+                    $mapaCli[trim($c['codigo'])] = trim($c['nome'] ?? ($c['fantasia'] ?? ''));
+                }
+            }
+        }
+
+        $mapaTec = [
+            '0071' => 'FABIANO', '0083' => 'LEIDIMAR', '0081' => 'MATHEUS', '0046' => 'GUILHERME',
+            '0059' => 'SOLANO', '0041' => 'FELIPE', '0034' => 'BRENO', '0016' => 'RILIANE',
+            '0010' => 'FABIO', '0085' => 'NINIVE', '0074' => 'GABRIEL', '0076' => 'DARLAN',
+            '0078' => 'JEAN', '0045' => 'NILTON', '0018' => 'SUDESTE', '0064' => 'BRENO INT', '0000' => 'UNICO'
+        ];
+        $coresTec = [
+            '0071' => '#deb887', '0083' => '#42b3f5', '0081' => '#10b981', '0046' => '#f0e68c',
+            '0059' => '#40e0d0', '0041' => '#ff8c00', '0034' => '#a78bfa', '0016' => '#dda0dd',
+            '0010' => '#7b68ee', '0085' => '#ec4899', '0074' => '#38bdf8', '0076' => '#fb923c',
+            '0078' => '#f43f5e', '0045' => '#84cc16', '0018' => '#a9a9a9', '0064' => '#64748b', '0000' => '#94a3b8'
+        ];
+
+        foreach ($listaOS as $row) {
+            $osNum = trim($row['codigo']);
+            $todasOS[] = $osNum;
+            $codtec = trim($row['codtec'] ?? '0000');
+            $st = trim($row['statusos'] ?? '00');
+            $cliNome = $mapaCli[trim($row['codcli'] ?? '')] ?? ($row['solicitante'] ?? 'Cliente Databit');
+            $loc = trim($row['local'] ?? '') ?: 'Geral';
+            $cid = trim($row['cidade'] ?? '') ?: 'LINHARES';
+            $dataStr = !empty($row['data']) ? date('d/m/Y H:i', (int)($row['data']/1000)) : '';
+            $horasAberto = !empty($row['data']) ? round((time() - (int)($row['data']/1000)) / 3600) : 0;
+            $isAtrasado = $horasAberto > 24;
+
+            $itemObj = [
+                'os' => $osNum,
+                'cliente' => $cliNome,
+                'local' => $loc,
+                'cidade' => $cid,
+                'origem' => ($row['origem'] ?? '') === 'W' || $st === '01' ? 'Web' : 'Interno',
+                'data' => $dataStr,
+                'sla' => $horasAberto ? "-{$horasAberto}h" : '0h',
+                'atrasado' => $isAtrasado,
+                'encaminhado' => $dataStr,
+                'tecnico' => $mapaTec[$codtec] ?? ($codtec ? "TECNICO {$codtec}" : 'A Definir'),
+                'corTecnico' => $coresTec[$codtec] ?? '#cbd5e1'
+            ];
+
+            if (!$codtec || $codtec === '0000' || in_array($st, ['00', '01'])) {
+                if ($codtec && $codtec !== '0000' && $st === '03') {
+                    $comTriagem[] = $itemObj;
+                } else {
+                    $semTriagem[] = $itemObj;
+                }
+            } else {
+                $comTriagem[] = $itemObj;
             }
         }
     }

@@ -48,6 +48,38 @@ const TECNICOS_FALLBACK = [
   { codigo: '0000', nome: 'UNICO' }
 ];
 
+const CORES_TECNICOS = {
+  '0071': '#deb887', // FABIANO
+  '0083': '#42b3f5', // LEIDIMAR
+  '0081': '#10b981', // MATHEUS
+  '0046': '#f0e68c', // GUILHERME
+  '0059': '#40e0d0', // SOLANO
+  '0041': '#ff8c00', // FELIPE
+  '0034': '#a78bfa', // BRENO
+  '0016': '#dda0dd', // RILIANE
+  '0010': '#7b68ee', // FABIO
+  '0085': '#ec4899', // NINIVE
+  '0074': '#38bdf8', // GABRIEL
+  '0076': '#fb923c', // DARLAN
+  '0078': '#f43f5e', // JEAN
+  '0045': '#84cc16', // NILTON
+  '0018': '#a9a9a9', // SUDESTE
+  '0064': '#64748b', // BRENO INT
+  '0000': '#94a3b8'  // UNICO
+};
+
+function formatarTimestamp(ms) {
+  if (!ms) return '';
+  const d = new Date(Number(ms));
+  if (isNaN(d.getTime())) return '';
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const ano = d.getFullYear();
+  const hor = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dia}/${mes}/${ano} ${hor}:${min}`;
+}
+
 /**
  * Consulta a API do Databit ERP em lote para obter motivo/defeito real, status oficial e modelo
  */
@@ -247,12 +279,12 @@ async function carregarDetalhesReais(listaOS) {
 }
 
 /**
- * Baixa o HTML ao vivo do cham1.php original
+ * Baixa o HTML ao vivo do cham1.php original (timeout curto de 2.5s)
  */
 async function baixarCham1Original() {
   const res = await fetch(CHAM1_URL, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Mobile)' },
-    signal: AbortSignal.timeout(12000)
+    signal: AbortSignal.timeout(2500)
   });
   if (!res.ok) {
     throw new Error(`Erro ao buscar cham1.php: HTTP ${res.status}`);
@@ -260,6 +292,144 @@ async function baixarCham1Original() {
   const buffer = await res.arrayBuffer();
   const decoder = new TextDecoder('utf-8');
   return decoder.decode(buffer);
+}
+
+/**
+ * Consulta direta e resiliente à API oficial do Databit ERP
+ * Usada automaticamente sempre que cham1.php estiver offline ou instável
+ */
+async function buscarChamadosDiretoDatabit() {
+  console.log('[DATABIT DIRETO] Consultando OSs ativas diretamente na API Databit...');
+  
+  // Buscar todas as OSs ativas recentes (status 00, 01, 03, 04)
+  const resOS = await fetch(`${API_BASE_URL}OsController/listar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ filtro: "codigo >= '052000' and statusos in ('00', '01', '03', '04') and situacao = 'A'" }),
+    signal: AbortSignal.timeout(8000)
+  });
+
+  if (!resOS.ok) {
+    throw new Error(`Erro ao consultar OsController no Databit: HTTP ${resOS.status}`);
+  }
+
+  const jsonOS = await resOS.json();
+  const listaOS = jsonOS.value || (Array.isArray(jsonOS) ? jsonOS : []);
+
+  // 1. Mapear clientes em lote
+  const codsCli = [...new Set(listaOS.map(x => (x.codcli || '').trim()).filter(Boolean))];
+  const mapaCli = {};
+  if (codsCli.length > 0) {
+    try {
+      const inCli = codsCli.join("','");
+      const resCli = await fetch(`${API_BASE_URL}ClienteController/listar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filtro: `codigo in ('${inCli}')` }),
+        signal: AbortSignal.timeout(5000)
+      });
+      if (resCli.ok) {
+        const jsonCli = await resCli.json();
+        const itensCli = jsonCli.value || (Array.isArray(jsonCli) ? jsonCli : []);
+        itensCli.forEach(c => {
+          if (c.codigo) {
+            mapaCli[c.codigo.trim()] = (c.nome || c.fantasia || '').trim();
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('[DATABIT DIRETO] Falha ao carregar nomes de clientes:', e.message);
+    }
+  }
+
+  // 2. Mapear técnicos
+  const mapaTec = {};
+  TECNICOS_FALLBACK.forEach(t => { mapaTec[t.codigo] = t.nome; });
+  try {
+    const resTec = await fetch(`${API_BASE_URL}TecnicoController/listar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filtro: "codigo is not null" }),
+      signal: AbortSignal.timeout(4000)
+    });
+    if (resTec.ok) {
+      const jsonTec = await resTec.json();
+      const itensTec = jsonTec.value || (Array.isArray(jsonTec) ? jsonTec : []);
+      itensTec.forEach(t => {
+        if (t.codigo && t.nome) mapaTec[t.codigo.trim()] = t.nome.trim();
+      });
+    }
+  } catch (e) {}
+
+  // 3. Buscar defeitos reais, produtos e modelos
+  const codigosOS = listaOS.map(x => x.codigo);
+  const detalhes = await carregarDetalhesReais(codigosOS);
+
+  const semTriagem = [];
+  const comTriagem = [];
+  const agora = Date.now();
+
+  for (const item of listaOS) {
+    const osNum = item.codigo;
+    const codtec = (item.codtec || '').trim();
+    const statusos = (item.statusos || '00').trim();
+    const nomeTec = mapaTec[codtec] || (codtec && codtec !== '0000' ? `TÉCNICO ${codtec}` : 'A Definir');
+    const corTec = CORES_TECNICOS[codtec] || '#cbd5e1';
+    const cliente = mapaCli[item.codcli] || item.solicitante || 'Cliente Databit';
+    const local = (item.local || '').trim() || 'Geral';
+    const cidade = (item.cidade || '').trim() || 'LINHARES';
+    const dataFormatada = formatarTimestamp(item.data);
+
+    const horasAberto = item.data ? Math.round((agora - Number(item.data)) / (1000 * 60 * 60)) : 0;
+    const isAtrasado = horasAberto > 24;
+
+    const info = detalhes[osNum] || {
+      defeito: item.motivo || item.obs || 'Defeito em aberto',
+      status: statusos,
+      nomeStatus: NOMES_STATUS_PADRAO[statusos] || `STATUS ${statusos}`,
+      modelo: 'Equipamento não cadastrado',
+      numserie: item.numserie || '',
+      codtec: codtec
+    };
+
+    const osObj = {
+      os: osNum,
+      cliente: cliente,
+      local: local,
+      cidade: cidade,
+      origem: item.origem === 'W' || statusos === '01' ? 'Web' : 'Interno',
+      data: dataFormatada,
+      sla: horasAberto ? `-${horasAberto}h` : '0h',
+      atrasado: isAtrasado,
+      defeito: info.defeito || item.motivo || item.obs || 'Defeito em aberto',
+      status: statusos,
+      nomeStatus: info.nomeStatus || NOMES_STATUS_PADRAO[statusos] || `Status ${statusos}`,
+      modelo: info.modelo || 'Equipamento não cadastrado',
+      numserie: item.numserie || info.numserie || '',
+      codtec: codtec,
+      tecnico: nomeTec,
+      corTecnico: corTec,
+      encaminhado: dataFormatada,
+      checkIn: ''
+    };
+
+    // Classificação
+    if (!codtec || codtec === '0000' || ['00', '01'].includes(statusos)) {
+      if (codtec && codtec !== '0000' && statusos === '03') {
+        comTriagem.push(osObj);
+      } else {
+        semTriagem.push(osObj);
+      }
+    } else {
+      comTriagem.push(osObj);
+    }
+  }
+
+  // Ordenar as OSs das mais recentes para as mais antigas
+  semTriagem.sort((a, b) => parseInt(b.os, 10) - parseInt(a.os, 10));
+  comTriagem.sort((a, b) => parseInt(b.os, 10) - parseInt(a.os, 10));
+
+  return { semTriagem, comTriagem, fonte: 'API Oficial Databit (Conexão Direta)' };
 }
 
 /**
@@ -448,61 +618,82 @@ app.post('/api/definir-tecnico', async (req, res) => {
 // ROTA PRINCIPAL: Retorna chamados consolidados com defeito real, modelo e status oficial do Databit
 app.get('/api/chamados', async (req, res) => {
   try {
-    const html = await baixarCham1Original();
-    const dados = interpretarCham1(html);
+    let semTriagemEnriquecido = [];
+    let comTriagemEnriquecido = [];
+    let fonteDados = 'API Databit';
 
-    // Buscar defeitos, modelo e status oficiais na API oficial do Databit
-    const detalhes = await carregarDetalhesReais(dados.todasOS);
+    // 1. Tentar buscar pelo cham1.php (com timeout curto de 2.5s)
+    let html = null;
+    try {
+      html = await baixarCham1Original();
+    } catch (errCham1) {
+      console.warn(`[CHAM1 INDISPONÍVEL] ${errCham1.message}. Alternando para consulta direta na API Databit ERP...`);
+    }
+
+    if (html) {
+      fonteDados = 'cham1.php + API Databit';
+      const dados = interpretarCham1(html);
+      const detalhes = await carregarDetalhesReais(dados.todasOS);
+
+      semTriagemEnriquecido = dados.semTriagem.map(item => {
+        const info = detalhes[item.os] || {
+          defeito: 'Não informado',
+          status: '00',
+          nomeStatus: NOMES_STATUS_PADRAO['00'],
+          modelo: 'Equipamento não cadastrado',
+          numserie: '',
+          codtec: '0000'
+        };
+        const st = info.status || '00';
+        return {
+          ...item,
+          defeito: info.defeito,
+          status: st,
+          nomeStatus: info.nomeStatus || NOMES_STATUS_PADRAO[st] || `Status ${st}`,
+          modelo: info.modelo,
+          numserie: info.numserie,
+          codtec: info.codtec
+        };
+      });
+
+      comTriagemEnriquecido = dados.comTriagem.map(item => {
+        const info = detalhes[item.os] || {
+          defeito: 'Não informado',
+          status: '03',
+          nomeStatus: NOMES_STATUS_PADRAO['03'],
+          modelo: 'Equipamento não cadastrado',
+          numserie: '',
+          codtec: '0000'
+        };
+        const st = info.status || '03';
+        return {
+          ...item,
+          defeito: info.defeito,
+          status: st,
+          nomeStatus: info.nomeStatus || NOMES_STATUS_PADRAO[st] || `Status ${st}`,
+          modelo: info.modelo,
+          numserie: info.numserie,
+          codtec: info.codtec
+        };
+      });
+    } else {
+      // 2. Fallback resiliente: Consulta direta à API oficial do Databit ERP
+      const dadosDiretos = await buscarChamadosDiretoDatabit();
+      semTriagemEnriquecido = dadosDiretos.semTriagem;
+      comTriagemEnriquecido = dadosDiretos.comTriagem;
+      fonteDados = dadosDiretos.fonte;
+    }
 
     let qtdStatus00 = 0;
     let qtdStatus01 = 0;
-
-    const semTriagemEnriquecido = dados.semTriagem.map(item => {
-      const info = detalhes[item.os] || {
-        defeito: 'Não informado',
-        status: '00',
-        nomeStatus: NOMES_STATUS_PADRAO['00'],
-        modelo: 'Equipamento não cadastrado',
-        numserie: '',
-        codtec: '0000'
-      };
-      const st = info.status || '00';
-      if (st === '01') qtdStatus01++; else qtdStatus00++;
-      return {
-        ...item,
-        defeito: info.defeito,
-        status: st,
-        nomeStatus: info.nomeStatus || NOMES_STATUS_PADRAO[st] || `Status ${st}`,
-        modelo: info.modelo,
-        numserie: info.numserie,
-        codtec: info.codtec
-      };
-    });
-
-    const comTriagemEnriquecido = dados.comTriagem.map(item => {
-      const info = detalhes[item.os] || {
-        defeito: 'Não informado',
-        status: '03',
-        nomeStatus: NOMES_STATUS_PADRAO['03'],
-        modelo: 'Equipamento não cadastrado',
-        numserie: '',
-        codtec: '0000'
-      };
-      const st = info.status || '03';
-      return {
-        ...item,
-        defeito: info.defeito,
-        status: st,
-        nomeStatus: info.nomeStatus || NOMES_STATUS_PADRAO[st] || `Status ${st}`,
-        modelo: info.modelo,
-        numserie: info.numserie,
-        codtec: info.codtec
-      };
+    semTriagemEnriquecido.forEach(item => {
+      if (item.status === '01') qtdStatus01++; else qtdStatus00++;
     });
 
     res.json({
       sucesso: true,
       timestamp: new Date().toISOString(),
+      fonte: fonteDados,
       apiOrigem: 'http://databitbh.com:54235/databitservice/',
       totais: {
         semTriagem: semTriagemEnriquecido.length,

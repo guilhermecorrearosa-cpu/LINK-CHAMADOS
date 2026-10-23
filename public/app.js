@@ -559,10 +559,30 @@ async function carregar() {
       }
 
       renderizar();
+    } else {
+      mostrarErroCarregamento(json.erro || 'Falha ao consultar servidor');
     }
   } catch (err) {
     console.error('Erro ao carregar chamados:', err);
+    mostrarErroCarregamento(err.message || 'Erro de conexão');
   }
+}
+
+function mostrarErroCarregamento(msg) {
+  const containerSem = document.getElementById('listaSemTriagem');
+  const containerCom = document.getElementById('listaComTriagem');
+  const erroHTML = `
+    <div class="empty-state" style="padding: 2.5rem 1rem; text-align: center;">
+      <div class="empty-icon" style="font-size: 2.2rem; margin-bottom: 0.75rem;">⚠️</div>
+      <div class="empty-title" style="color: var(--color-danger); font-weight: 700; margin-bottom: 0.25rem;">Falha na Conexão</div>
+      <div class="empty-desc" style="font-size: 0.82rem; margin-bottom: 1.25rem; color: var(--text-secondary);">${escapeHtml(msg)}</div>
+      <button onclick="carregar()" class="btn-sheet btn-sheet-confirm" style="width: auto; padding: 0.6rem 1.4rem; font-size: 0.85rem; border-radius: 999px; margin: 0 auto; display: inline-flex; align-items: center; gap: 0.4rem;">
+        🔄 Tentar Novamente
+      </button>
+    </div>
+  `;
+  if (containerSem && !dados.semTriagem.length) containerSem.innerHTML = erroHTML;
+  if (containerCom && !dados.comTriagem.length) containerCom.innerHTML = erroHTML;
 }
 
 async function carregarTecnicos() {
